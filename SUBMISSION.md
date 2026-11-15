@@ -16,7 +16,7 @@ Tell it once. Kestrel keeps watching the web and tells you only what changed.
 Kestrel watches the web for you. Tell it once what you care about, in plain words. It searches the live web, reads the pages, checks each one against what you asked for, and shows the result with its sources. Then it keeps watching, and tells you only when something changed: the before, the after and the page it happened on.
 
 - Live: https://kestrel.zeroanomaly.tech
-- Film (under 2 minutes): [film link]
+- Film: [film link]
 - Code: [repository link]
 
 **Context.dev finds, reads and watches. Oxylabs localises and prices. Gemini judges.**
@@ -30,7 +30,7 @@ Anyone who re-checks the same pages by hand: a shopper waiting for a price, a jo
 - **Watches.** A standing request. It looks again by the clock, when you press "Check now", or when a Context.dev monitor reports a change. It compares what it finds with what it found last time and tells you only when something is different. A look that finds nothing new says nothing.
 - **Sift.** For "find me the ones that…" questions. One search returns about 40 pages with their text, and one request checks every page against every wish. You get a grid of yes, no, or "the page does not say". One press turns the grid into a watch.
 - **Prices by country.** One product, priced as a shopper in each of seven countries sees it, with the shop and a link. One press makes it a price watch.
-- **Places, news, weather, research, voice.** A map with hours and ratings, news with dates, a forecast, research reports and a live call. Every card shows its sources.
+- **Places, news, weather, research, voice.** A map with hours and ratings, news with dates, a forecast, research reports and a live call.
 
 ## How it reacts to change
 
@@ -44,7 +44,7 @@ The first look is a baseline. A page that could not be read is listed as unread,
 ## How it uses Context.dev
 
 - `POST /web/search` with page text and highlights: the pages and what they say in one call. So a Sift, and every look of a watch, is one request per wording, not a search plus forty page reads.
-- `POST /web/scrape`: full page reads, and the Google Maps parser for places with hours and ratings.
+- `POST /web/scrape`: full page reads, the pages a slow search missed, and the Google Maps parser for places with hours and ratings.
 - `POST /news/search`: stories with dates and publishers.
 - `POST /monitors`: a page monitor per pinned page and a search monitor per search. A change calls Kestrel's webhook, signed; the signature is verified on the raw body before anything else, and a look starts.
 
@@ -59,8 +59,9 @@ The cheapest offer per country is picked by plain code, not a model: the product
 
 ## Measured on the running app, 15 November 2026
 
-- A Sift: 40 pages read and 200 checks in 5.7 seconds (the middle of three questions, each asked for the first time). Reading took 4.5 to 4.7 s, checking 1.0 to 1.2 s.
-- Prices: one product in seven countries in 3.3 seconds (the middle of three products).
+- A Sift: 40 pages read and 200 checks in 3.4 s (the question in the film) to 5.7 s (the middle of three first-time questions).
+- An hour later pages loaded slowly. Kestrel then read the ones the search missed one by one: about 9 s for 17 to 36 pages.
+- Prices: one product in seven countries in 3.3 s (the middle of three products) to 4.7 s (the product in the film).
 
 ## Trust
 
@@ -72,7 +73,7 @@ The cheapest offer per country is picked by plain code, not a model: the product
 
 ## How it is built
 
-Next.js 16, React 19, Vercel AI SDK 7 and Postgres on Google Cloud Run. Gemini's decision model judges, Gemini 3.8 Live runs voice, and Gemini 4 and Claude 5.5 models run the agent's four modes. Kestrel was built at the event, on the code of Beryl, our own entry to another challenge here: the chat, the cards, Sift and voice come from there. New for Kestrel are the two web-data clients, watches with their comparison and webhook, prices by country, and the look.
+Next.js 16, React 19, Vercel AI SDK 7 and Postgres on Google Cloud Run. Gemini's decision model judges, Gemini 3.8 Live runs voice, and Gemini 4 and Claude 5.5 models run the agent's four modes. Kestrel was built at the event on the code of Beryl, our entry to another challenge here: the chat, the cards, Sift and voice come from it. New for Kestrel: the two web-data clients, watches with their comparison and webhook, and prices by country.
 
 Built by Zero Anomaly at Junction 2026.
 ```

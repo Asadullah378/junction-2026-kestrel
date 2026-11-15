@@ -65,10 +65,12 @@ Each of these starts a new revision, so the same warning about running chats app
 - The admin password is the same secret value as Beryl's, copied project to project. Nobody has signed in on the live site from this setup.
 - Checked from a local server against the live site: a watch pinned to the public demo shop page read `price: 329` and `inStock: true` off it through Oxylabs AI Parsing. Registering monitors was checked against Context.dev's API (page and search, semantic and exact: all accepted, each returning its signing secret). **Not yet seen: a delivery from a real monitor to the live webhook.** It needs a watch made on the live site by someone signed in.
 
+- **15 Nov, 04:20.** Second deploy: revision `kestrel-00002-d4s`, image `web:live-1115-0418`, commit `55196a8`. It carries the Sift fix for slow page reads, the clean-up, and the film: `kestrel-draft-2.mp4` is in the bucket as `kestrel-demo.mp4` and `KESTREL_DEMO_VIDEO` points at it. Before it went out the service's log showed no one signed in and no chat running for 45 minutes. Checked signed out afterwards: `/api/health` all set; `/`, `/login`, `/dev/shop` and the film's poster answer 200; `/watches` sends a visitor to sign in; the API answers 401; the webhook refuses an unsigned call with 400; the film plays on the landing page.
+
 ## Still to do
 
 - When `kestrel.zeroanomaly.tech` resolves and the certificate is active, point the site at it: `gcloud run services update kestrel --project kestrel-contextdev --region europe-north1 --update-env-vars KESTREL_SITE_URL=https://kestrel.zeroanomaly.tech`. Monitors registered before that keep calling the `run.app` address, which keeps working.
-- The film: upload it to the bucket, set `KESTREL_DEMO_VIDEO`, add its poster and deploy.
+- A delivery from a real monitor to the live webhook has still not been seen. Sign in, make a watch on `/dev/shop`, change the price at `/dev/shop-admin`, and wait for the monitor's next look (up to ten minutes) or press "Check now".
 
 ## Shutting it down
 

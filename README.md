@@ -40,7 +40,7 @@ Everything goes through `web/src/lib/sources/contextdev.ts`.
 | Endpoint | What Kestrel does with it |
 |---|---|
 | `POST /web/search` with `markdownOptions` and `highlightsOptions` | Finds pages and returns each page's text and the passages that bear on the search, in the same call. This is what lets a Sift, and every look of a watch, be one request per wording instead of a search and forty page reads. |
-| `POST /web/scrape` (Markdown) | Reads a page in full when the passages are not enough. |
+| `POST /web/scrape` (Markdown) | Reads a page in full when the passages are not enough. It is also the second read in a Sift: when a search comes back before most of its pages have loaded, the missing ones are read one by one. |
 | `POST /web/scrape` with the prebuilt `google-maps` parser | Places with coordinates, opening hours, phone and rating as fields. |
 | `POST /news/search` | News stories with their dates and publishers. |
 | `POST /monitors`, `POST /monitors/{id}/run`, `DELETE /monitors/{id}` | A `page` monitor for each pinned page and a `search` monitor for each search of a watch. When one detects a change it calls `POST /api/hooks/context`, signed; Kestrel verifies the signature on the raw body, drops repeats, and starts a look. "Check now" also asks the monitors to look at once. |
@@ -67,8 +67,13 @@ The cheapest offer per country is picked by plain code, not by a model (`web/src
 
 On 15 November 2026, on the running app:
 
-- **Sift:** 40 pages read and 200 checks in 5.7 seconds. The middle of three questions, each asked for the first time (5.8, 5.7 and 5.7 s). Finding and reading the pages took 4.5 to 4.7 s, the checks 1.0 to 1.2 s.
-- **Prices:** one product in seven countries in 3.3 seconds. The middle of three products (2.5, 3.3 and 3.9 s).
+- **Sift, around 03:00:** 40 pages read and 200 checks in 3.4 to 5.7 seconds, depending on the question.
+  - 5.7 s is the middle of three different questions, each asked for the first time (5.8, 5.7 and 5.7 s). Finding and reading the pages took 4.5 to 4.7 s, the checks 1.0 to 1.2 s.
+  - 3.4 s is the question in the film (quick chickpea dinners), the middle of three runs more than five minutes apart, so none came from Kestrel's own cache. Reading took 2.5 s, the checks 0.8 s.
+- **Sift, around 04:10, when pages loaded slowly:** about 9 seconds. A search gives its pages five seconds to load, and that hour it came back with the text of 0 to 7 of 40. When more than a quarter are missing, Kestrel reads the missing pages one by one for up to four more seconds. Four first-time questions then took 9.2 to 9.5 s and read 35, 35, 36 and 17 pages. Without that second read the same hour gave 8 pages.
+- **Prices:** one product in seven countries in 3.3 to 4.7 seconds.
+  - 3.3 s is the middle of three products (2.5, 3.3 and 3.9 s).
+  - 4.7 s is the product in the film, a pair of Sony headphones.
 - **Cost:** a 40-page Sift used 46 to 66 Context.dev credits, about 9 to 13 cents at the published overage rate, plus half a cent for the checks. Oxylabs publishes no price per call, so its calls are counted and not priced.
 
 ## What it will not do
