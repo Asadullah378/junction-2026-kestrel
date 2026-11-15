@@ -76,7 +76,7 @@ export function Welcome({ place, onPick, onTalk }: { place: string; onPick: (pro
           <span className="text-muted-foreground">What should I keep an eye on?</span>
         </h1>
         <p className="mt-4 max-w-[34rem] text-[0.9rem] leading-relaxed text-muted-foreground @min-[440px]/chat:mt-5 @min-[440px]/chat:text-[0.95rem]">
-          Ask once. I search the live web, read the pages and check them against what you asked for. Say "watch it" and I keep looking, and tell you when something changes.
+          Ask once. I search the live web, read the pages and check them against what you asked for. Say “watch it” and I keep looking, and tell you when something changes.
         </p>
         {canTalk ? (
           <button
