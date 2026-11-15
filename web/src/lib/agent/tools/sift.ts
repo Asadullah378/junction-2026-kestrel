@@ -2,31 +2,39 @@ import "server-only";
 
 import { tool } from "ai";
 import { z } from "zod";
-import { decide, decisionsConfigured, type ChoiceAnswer, type DecisionQuestion, type YesNoAnswer } from "@/lib/decisions/client";
-import { exaSearch, type ExaResult } from "@/lib/exa/client";
+import { decide, decisionsConfigured, type ChoiceAnswer, type DecisionMeter, type DecisionQuestion, type YesNoAnswer } from "@/lib/decisions/client";
+import { liveSearch, type LiveResult, type Recency, type WebMeter } from "@/lib/sources/client";
 import { SIFT_SURE, toSource, type SiftData, type SiftItem, type SiftVerdict } from "@/lib/widgets/types";
 import { clip, errorMessage, type ToolContext } from "./context";
 
 /*
- * Sift: find the ones that fit. Exa returns dozens of pages in one search, each with its text;
- * Gemini's decision model then checks every page against every wish in a single request and
- * about a second, where an agent reading pages one by one would manage four or five. The result
- * is a grid: one row per page, one column per wish, each cell a yes, a no or "does not say",
- * with how sure the judge is.
+ * Sift: find the ones that fit. Context.dev returns dozens of pages in one search, each with its
+ * text; Gemini's decision model then checks every page against every wish in a single request,
+ * where an agent reading pages one by one would manage four or five. The result is a grid: one
+ * row per page, one column per wish, each cell a yes, a no or "does not say", with how sure the
+ * judge is.
  *
- * The judge only ever sees what Exa returned for a page, and it answers with probabilities, not
- * words: it cannot invent a fact, only say whether the page states one.
+ * The judge only ever sees what the search returned for a page, and it answers with
+ * probabilities, not words: it cannot invent a fact, only say whether the page states one.
+ *
+ * The two halves, finding and judging, are plain functions so that a watch can run the same
+ * sift again later and compare the result with the last one (lib/watches).
  */
 
-/** Pages checked in one sift: enough to be worth sifting, few enough to stay at a few cents on Exa. */
+/** Pages checked in one sift: enough to be worth sifting, few enough to stay quick and cheap. */
 const USUAL_PAGES = 40;
 const THOROUGH_PAGES = 100;
-/** What each page contributes: its opening, plus the passages Exa finds further down that bear on the wishes. */
-const OPENING_CHARS = 1800;
+/** What each page contributes: its opening, plus the passages further down that bear on the search. */
+const OPENING_CHARS = 2200;
 const PASSAGE_CHARS = 1400;
+/**
+ * How long the pages get to load. Measured on 15 Nov 2026: with five seconds, 38 of 40 pages came
+ * back with their text in 4.5 s; waiting for the last two took the search to 7.5 s.
+ */
+const READ_BUDGET_MS = 5_000;
+const THOROUGH_READ_BUDGET_MS = 9_000;
 /** A page with less than this to read cannot be judged. */
 const MIN_CHARS = 200;
-const RECENCY_DAYS = { day: 1, week: 7, month: 31, year: 366 } as const;
 
 const ANSWERS = {
   yes: "The page says so, or clearly implies it",
@@ -34,15 +42,29 @@ const ANSWERS = {
   unknown: "The page does not give enough information to tell",
 } as const;
 
-type Wish = { label: string; test: string };
+export type Wish = { label: string; test: string };
+
+export type SiftSpec = {
+  /** What one result should be, singular: "a recipe". */
+  what: string;
+  wishes: Wish[];
+  /** One to three searches, each worded differently. */
+  queries: string[];
+  includeDomains?: string[];
+  recency?: Recency;
+  thorough?: boolean;
+  country?: string;
+};
+
+type Meters = { meter?: WebMeter & DecisionMeter; signal?: AbortSignal };
 
 /** The same page under two addresses counts once. */
-const pageKey = (url: string) => url.replace(/#.*$/, "").replace(/\/$/, "").replace(/^https?:\/\/(www\.)?/, "");
+export const pageKey = (url: string) => url.replace(/#.*$/, "").replace(/\/$/, "").replace(/^https?:\/\/(www\.)?/, "");
 
-const readable = (r: ExaResult) => `${r.text ?? ""} ${(r.highlights ?? []).join(" ")}`.replace(/\s+/g, " ").trim();
+const readable = (r: LiveResult) => `${r.text ?? ""} ${(r.highlights ?? []).join(" ")}`.replace(/\s+/g, " ").trim();
 
 /** One page as the judge reads it. */
-function pageText(r: ExaResult, n: number): string {
+function pageText(r: LiveResult, n: number): string {
   const opening = clip((r.text ?? "").replace(/\s+/g, " "), OPENING_CHARS);
   const passages = (r.highlights ?? []).map((h) => `- ${clip(h.replace(/\s+/g, " "), PASSAGE_CHARS)}`).join("\n");
   return `[Page ${n}] ${r.title ?? ""}\n${r.url}\n${opening}${passages ? `\nPassages from further down the page:\n${passages}` : ""}`;
@@ -62,13 +84,116 @@ function verdictWords(v: SiftVerdict): string {
   return v.confidence >= SIFT_SURE ? v.answer : `probably ${v.answer} (${Math.round(v.confidence * 100)}%)`;
 }
 
+export const cleanWishes = (wishes: Wish[]): Wish[] => wishes.map((w) => ({ label: w.label.trim(), test: w.test.trim().replace(/[.?!]+$/, "") }));
+
+export type SiftFound = {
+  /** The pages to judge, one per address, each with something to read. */
+  pages: LiveResult[];
+  /** The same pages as the grid lists them. */
+  listed: SiftItem[];
+  /** Pages that came back with nothing to read. */
+  unreadable: number;
+  webCostUsd: number;
+  searchMs: number;
+  /** Set when nothing came back at all. */
+  error?: string;
+};
+
+/** Find the pages and read them: one to three searches at once, each returning its pages' text. */
+export async function siftFind(spec: SiftSpec, opts: Meters = {}): Promise<SiftFound> {
+  // Differently worded searches find many of the same pages, so each asks for more than its share
+  // and the surplus is cut after the doubles are gone.
+  const limit = spec.thorough ? THOROUGH_PAGES : USUAL_PAGES;
+  const perQuery = Math.min(100, Math.ceil((limit / spec.queries.length) * (spec.queries.length > 1 ? 1.5 : 1)));
+  const started = Date.now();
+  const searches = await Promise.allSettled(
+    spec.queries.map((query) =>
+      liveSearch(
+        { query, numResults: perQuery, includeDomains: spec.includeDomains, recency: spec.recency, country: spec.country, text: true, highlights: PASSAGE_CHARS, readBudgetMs: spec.thorough ? THOROUGH_READ_BUDGET_MS : READ_BUDGET_MS },
+        { meter: opts.meter, signal: opts.signal },
+      ),
+    ),
+  );
+  const searchMs = Date.now() - started;
+  // Taken in turn from each search, so every wording contributes its best pages before any is cut.
+  const lists = searches.map((s) => (s.status === "fulfilled" ? s.value.results : []));
+  const found: LiveResult[] = [];
+  for (let rank = 0; rank < perQuery; rank++) for (const list of lists) if (list[rank]) found.push(list[rank]);
+  const webCostUsd = Math.round(searches.reduce((sum, s) => sum + (s.status === "fulfilled" ? s.value.costUsd : 0), 0) * 1e5) / 1e5;
+  if (found.length === 0) {
+    const failed = searches.find((s) => s.status === "rejected");
+    return { pages: [], listed: [], unreadable: 0, webCostUsd, searchMs, error: failed ? errorMessage((failed as PromiseRejectedResult).reason) : "Nothing was found. Try describing it differently." };
+  }
+
+  // One entry per page, and only pages with something to read.
+  const seen = new Set<string>();
+  let unreadable = 0;
+  const pages = found
+    .filter((r) => {
+      const key = pageKey(r.url);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      if (readable(r).length >= MIN_CHARS) return true;
+      unreadable += 1;
+      return false;
+    })
+    .slice(0, limit);
+  const listed = pages.map((r): SiftItem => ({ ...toSource({ url: r.url, title: r.title, publishedDate: r.publishedDate, snippet: clip(r.highlights?.[0] ?? r.description, 240) || undefined }), image: r.image ?? undefined }));
+  return { pages, listed, unreadable, webCostUsd, searchMs, error: pages.length === 0 ? "The pages that were found had nothing to read. Try describing it differently." : undefined };
+}
+
+export type SiftJudged = {
+  /** The pages that are one such thing, best fit first, each with a verdict per wish. */
+  items: SiftItem[];
+  skipped?: number;
+  judgements: number;
+  judgedMs: number;
+};
+
+/** Check every page against every wish, in one request to the decision model. Throws if the judge cannot be reached. */
+export async function siftJudge(spec: Pick<SiftSpec, "what" | "wishes">, found: SiftFound, opts: Meters = {}): Promise<SiftJudged> {
+  const { pages, listed } = found;
+  const { wishes } = spec;
+  // One request: every page in the shared input, and one question per page and wish.
+  const questions: Record<string, DecisionQuestion> = {};
+  pages.forEach((_, i) => {
+    const n = i + 1;
+    questions[`p${n}_is`] = {
+      type: "noul",
+      instructions: `Look only at Page ${n}. Is that page itself ${spec.what}, with real content about it?`,
+      criteria: { true_description: `The page is about one specific ${bare(spec.what)} and says something about it`, false_description: "The page is a list or round-up of several, a category, search or home page, an error page, or has no real content" },
+    };
+    wishes.forEach((wish, w) => {
+      questions[`p${n}_w${w}`] = { type: "choice", instructions: `Look only at Page ${n}. According to that page, is it true that ${wish.test}?`, criteria: ANSWERS };
+    });
+  });
+  const judged = await decide(pages.map((r, i) => pageText(r, i + 1)).join("\n\n"), questions, { meter: opts.meter, signal: opts.signal });
+
+  // Best fit first: most wishes met, then the surest. Pages that are not one such thing are left out.
+  const rows = pages
+    .map((r, i) => {
+      const n = i + 1;
+      const is = judged.answers[`p${n}_is`] as YesNoAnswer | undefined;
+      const answers = wishes.map((_, w) => judged.answers[`p${n}_w${w}`] as ChoiceAnswer | undefined);
+      const item: SiftItem = { ...listed[i], verdicts: answers.map(verdictOf) };
+      const fit = answers.reduce((sum, a) => sum + (a?.probabilities?.yes ?? 0), 0);
+      return { item, fit, isOne: (is?.noul ?? 1) >= 0.5, rank: i };
+    })
+    .sort((a, b) => metCount(b.item) - metCount(a.item) || b.fit - a.fit || a.rank - b.rank);
+  const kept = rows.filter((row) => row.isOne);
+  // If nearly nothing passes as "one such thing", the description of the thing was off, not the pages: show them all.
+  const items = (kept.length >= 3 ? kept : rows).map((row) => row.item);
+  return { items, skipped: pages.length - items.length + found.unreadable || undefined, judgements: pages.length * wishes.length + pages.length, judgedMs: judged.ms };
+}
+
 export function siftTool(ctx: ToolContext) {
   return tool({
     description:
       "Find the ones that fit: reads dozens of web pages at once and checks every one against every wish the user has, then shows a grid of which pages meet which wishes. " +
       "Use it when the user wants things that must meet several conditions and each candidate has a page of its own that states the facts: recipes, job ads, flats and other listings, product reviews, courses, events, studies and papers, grants, tools. " +
       "It checks about 40 pages in the time you could read one, so prefer it to searching and reading page by page whenever the request is 'find me … that …'. " +
-      "Not for places to go (findPlaces knows opening hours), flights, hotels or shop prices, and not for a single fact.",
+      "Not for places to go (findPlaces knows opening hours), the price of one product across shops (comparePrices) or a single fact. " +
+      "The user can turn any sift into a watch with one press, so the same check runs again later and reports what changed.",
     inputSchema: z.object({
       title: z.string().describe('A short title for the grid, in the user\'s language: "Chickpea dinners that fit".'),
       what: z
@@ -78,7 +203,7 @@ export function siftTool(ctx: ToolContext) {
         .array(z.string())
         .min(1)
         .max(3)
-        .describe("One to three descriptions of the pages to find, each worded differently to cast a wider net. Describe the pages (subject, kind of page, time period), not keywords. Do not put the wishes in as must-haves: the sift checks those."),
+        .describe("One to three searches for the pages to find, each worded differently to cast a wider net. Word each as you would type it into a search engine (subject, kind of page, time period). Do not put the wishes in as must-haves: the sift checks those."),
       wishes: z
         .array(
           z.object({
@@ -93,128 +218,40 @@ export function siftTool(ctx: ToolContext) {
         .min(1)
         .max(6)
         .describe("What the user wants, one condition each. Include only what they asked for or clearly need."),
-      category: z.enum(["news", "company", "people", "publication", "personal site", "financial report"]).optional().describe('Only for those kinds of page: "publication" for studies and papers.'),
       includeDomains: z.array(z.string()).max(20).optional().describe("Only search these sites."),
-      recency: z.enum(["day", "week", "month", "year"]).optional().describe("Only pages published within this window, for things that go out of date: job ads, events, listings."),
+      recency: z.enum(["day", "week", "month", "year"]).optional().describe("Only pages from within this window, for things that go out of date: job ads, events, listings."),
       thorough: z.boolean().optional().describe("Check about 100 pages instead of about 40. Use it when the user asks for all of them, or when a first sift found too few that fit."),
     }),
     // Each `yield` replaces what the widget shows; the last value yielded is the tool's result.
     async *execute(input, { abortSignal }): AsyncGenerator<SiftData> {
-      const wishes: Wish[] = input.wishes.map((w) => ({ label: w.label.trim(), test: w.test.trim().replace(/[.?!]+$/, "") }));
+      const wishes = cleanWishes(input.wishes);
+      const spec: SiftSpec = { what: input.what, wishes, queries: input.queries, includeDomains: input.includeDomains, recency: input.recency, thorough: input.thorough, country: ctx.country };
       const base = { kind: "sift" as const, title: input.title, what: input.what, wishes };
+      // What a watch needs to run this same sift again.
+      const watchSpec = { what: input.what, wishes: wishes.map((w, i) => ({ id: `w${i}`, ...w })), queries: input.queries };
       try {
-        yield { ...base, items: [], checked: 0, sources: [], stage: "Searching the live web" };
-
-        // Differently worded searches find many of the same pages, so each asks for more than its share
-        // and the surplus is cut after the doubles are gone.
-        const limit = input.thorough ? THOROUGH_PAGES : USUAL_PAGES;
-        const perQuery = Math.min(100, Math.ceil((limit / input.queries.length) * (input.queries.length > 1 ? 1.5 : 1)));
-        const dated = input.recency && input.category !== "company" && input.category !== "people";
-        const searches = await Promise.allSettled(
-          input.queries.map((query) =>
-            exaSearch(
-              {
-                query,
-                objective: `Pages that are each ${input.what}. Leave out lists, round-ups, category pages and home pages.`,
-                numResults: perQuery,
-                category: input.category,
-                includeDomains: input.includeDomains?.length ? input.includeDomains : undefined,
-                startPublishedDate: dated ? new Date(Date.now() - RECENCY_DAYS[input.recency!] * 86_400_000).toISOString() : undefined,
-                userLocation: ctx.country,
-                // The opening of each page, plus the passages that bear on the wishes wherever they are on the page.
-                contents: { text: { maxCharacters: OPENING_CHARS }, highlights: { query: wishes.map((w) => w.test).join("; "), maxCharacters: PASSAGE_CHARS } },
-              },
-              { meter: ctx.meter, signal: abortSignal },
-            ),
-          ),
-        );
-        // Taken in turn from each search, so every wording contributes its best pages before any is cut.
-        const lists = searches.map((s) => (s.status === "fulfilled" ? s.value.results : []));
-        const found: ExaResult[] = [];
-        for (let rank = 0; rank < perQuery; rank++) for (const list of lists) if (list[rank]) found.push(list[rank]);
-        const webCostUsd = Math.round(searches.reduce((sum, s) => sum + (s.status === "fulfilled" ? (s.value.costDollars?.total ?? 0) : 0), 0) * 1e5) / 1e5;
-        if (found.length === 0) {
-          const failed = searches.find((s) => s.status === "rejected");
-          yield { ...base, items: [], checked: 0, sources: [], error: failed ? errorMessage((failed as PromiseRejectedResult).reason) : "Nothing was found. Try describing it differently." };
+        yield { ...base, items: [], checked: 0, sources: [], stage: "Searching the live web and reading the pages" };
+        const found = await siftFind(spec, { meter: ctx.meter, signal: abortSignal });
+        const { pages, listed, webCostUsd, searchMs } = found;
+        if (found.error) {
+          yield { ...base, items: [], checked: 0, sources: [], webCostUsd, error: found.error };
           return;
         }
-
-        // One entry per page, and only pages with something to read.
-        const seen = new Set<string>();
-        let unreadable = 0;
-        const pages = found
-          .filter((r) => {
-            const key = pageKey(r.url);
-            if (seen.has(key)) return false;
-            seen.add(key);
-            if (readable(r).length >= MIN_CHARS) return true;
-            unreadable += 1;
-            return false;
-          })
-          .slice(0, limit);
-        const asItem = (r: ExaResult): SiftItem => ({ ...toSource({ url: r.url, title: r.title, publishedDate: r.publishedDate, snippet: clip(r.highlights?.[0], 240) || undefined }), image: r.image ?? undefined });
-        const listed = pages.map(asItem);
-        if (pages.length === 0) {
-          yield { ...base, items: [], checked: 0, sources: [], webCostUsd, error: "The pages that were found had nothing to read. Try describing it differently." };
-          return;
-        }
-
-        const checks = pages.length * wishes.length;
-        yield { ...base, items: listed, checked: pages.length, sources: listed.slice(0, 12), webCostUsd, stage: `Checking ${pages.length} pages against ${wishes.length === 1 ? "your wish" : `${wishes.length} wishes`}` };
+        yield { ...base, items: listed, checked: pages.length, sources: listed.slice(0, 12), webCostUsd, searchMs, stage: `Checking ${pages.length} pages against ${wishes.length === 1 ? "your wish" : `${wishes.length} wishes`}` };
 
         if (!decisionsConfigured()) {
-          yield { ...base, items: listed, checked: pages.length, sources: listed, webCostUsd, unjudged: "These pages were found but could not be checked against your wishes: the decision model is not set up on this server." };
+          yield { ...base, items: listed, checked: pages.length, sources: listed, webCostUsd, searchMs, unjudged: "These pages were found but could not be checked against your wishes: the decision model is not set up on this server." };
           return;
         }
-
-        // One request: every page in the shared input, and one question per page and wish.
-        const questions: Record<string, DecisionQuestion> = {};
-        pages.forEach((_, i) => {
-          const n = i + 1;
-          questions[`p${n}_is`] = {
-            type: "noul",
-            instructions: `Look only at Page ${n}. Is that page itself ${input.what}, with real content about it?`,
-            criteria: { true_description: `The page is about one specific ${bare(input.what)} and says something about it`, false_description: "The page is a list or round-up of several, a category, search or home page, an error page, or has no real content" },
-          };
-          wishes.forEach((wish, w) => {
-            questions[`p${n}_w${w}`] = { type: "choice", instructions: `Look only at Page ${n}. According to that page, is it true that ${wish.test}?`, criteria: ANSWERS };
-          });
-        });
-
-        let judged: Awaited<ReturnType<typeof decide>>;
+        let judged: SiftJudged;
         try {
-          judged = await decide(pages.map((r, i) => pageText(r, i + 1)).join("\n\n"), questions, { meter: ctx.meter, signal: abortSignal });
+          judged = await siftJudge(spec, found, { meter: ctx.meter, signal: abortSignal });
         } catch (err) {
           if (abortSignal?.aborted) throw err;
-          yield { ...base, items: listed, checked: pages.length, sources: listed, webCostUsd, unjudged: `These pages were found but could not be checked against your wishes. ${errorMessage(err)}` };
+          yield { ...base, items: listed, checked: pages.length, sources: listed, webCostUsd, searchMs, unjudged: `These pages were found but could not be checked against your wishes. ${errorMessage(err)}` };
           return;
         }
-
-        // Best fit first: most wishes met, then the surest. Pages that are not one such thing are left out.
-        const rows = pages
-          .map((r, i) => {
-            const n = i + 1;
-            const is = judged.answers[`p${n}_is`] as YesNoAnswer | undefined;
-            const answers = wishes.map((_, w) => judged.answers[`p${n}_w${w}`] as ChoiceAnswer | undefined);
-            const item: SiftItem = { ...listed[i], verdicts: answers.map(verdictOf) };
-            const fit = answers.reduce((sum, a) => sum + (a?.probabilities?.yes ?? 0), 0);
-            return { item, fit, isOne: (is?.noul ?? 1) >= 0.5, rank: i };
-          })
-          .sort((a, b) => metCount(b.item) - metCount(a.item) || b.fit - a.fit || a.rank - b.rank);
-        const kept = rows.filter((row) => row.isOne);
-        // If nearly nothing passes as "one such thing", the description of the thing was off, not the pages: show them all.
-        const items = (kept.length >= 3 ? kept : rows).map((row) => row.item);
-
-        yield {
-          ...base,
-          items,
-          checked: pages.length,
-          skipped: pages.length - items.length + unreadable || undefined,
-          judgements: checks + pages.length,
-          judgedMs: judged.ms,
-          sources: items,
-          webCostUsd,
-        };
+        yield { ...base, items: judged.items, checked: pages.length, skipped: judged.skipped, judgements: judged.judgements, judgedMs: judged.judgedMs, searchMs, sources: judged.items, webCostUsd, watchSpec };
       } catch (err) {
         yield { ...base, items: [], checked: 0, sources: [], error: errorMessage(err) };
       }
@@ -241,7 +278,8 @@ export function siftTool(ctx: ToolContext) {
           "The grid is now on the user's screen, best fit first, with every page linked: do not list it again. " +
           "Say in two or three sentences how many pages were checked and how many fit, which one you would pick and why, and what the near misses lack. " +
           '"Not stated" means the page does not say, not that the answer is no: say so rather than guess, and read that page with readPages if it decides the matter. ' +
-          "A verdict marked probably is not certain; do not present it as a fact.\n\n" +
+          "A verdict marked probably is not certain; do not present it as a fact. " +
+          'The grid has a "Watch this" button: if the user wants to hear when new ones appear or one changes, tell them to press it, or make the watch with createWatch.\n\n' +
           `Best fits:\n${lines.join("\n")}`,
       };
     },

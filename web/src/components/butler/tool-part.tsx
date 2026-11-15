@@ -13,9 +13,6 @@ import type {
   ComparisonData,
   CustomBlock,
   CustomData,
-  FlightsData,
-  HotelsData,
-  ImagesData,
   JobCardData,
   KeyFactsData,
   PlacesData,
@@ -23,7 +20,6 @@ import type {
   ProductsData,
   ResearchData,
   SiftData,
-  StocksData,
   WeatherData,
 } from "@/lib/widgets/types";
 import { Actions } from "@/components/widgets/actions";
@@ -31,9 +27,6 @@ import { Clarify } from "@/components/widgets/clarify";
 import { Comparison } from "@/components/widgets/comparison";
 import { Custom } from "@/components/widgets/custom";
 import { KeyFacts } from "@/components/widgets/facts";
-import { Flights } from "@/components/widgets/flights";
-import { Hotels } from "@/components/widgets/hotels";
-import { Images } from "@/components/widgets/images";
 import { JobCard } from "@/components/widgets/job-card";
 import { LocationRequest } from "@/components/widgets/location-request";
 import { PredictionMarket } from "@/components/widgets/market";
@@ -41,7 +34,6 @@ import { PlacesMap } from "@/components/widgets/places-map";
 import { Products } from "@/components/widgets/products";
 import { Research } from "@/components/widgets/research";
 import { Sift } from "@/components/widgets/sift";
-import { Stocks } from "@/components/widgets/stocks";
 import { UserAction, type UserActionInput } from "@/components/widgets/user-action";
 import { Weather } from "@/components/widgets/weather";
 
@@ -53,7 +45,7 @@ export function isToolPart(part: ButlerPart): part is ToolPart {
 }
 
 /** Tools shown as quiet activity rows instead of cards. */
-export const ACTIVITY_TOOLS = new Set(["tool-webSearch", "tool-readPages"]);
+export const ACTIVITY_TOOLS = new Set(["tool-webSearch", "tool-searchNews", "tool-readPages"]);
 
 /** A widget crashing must never take the conversation down with it. */
 class WidgetBoundary extends React.Component<{ children: React.ReactNode }, { failed: boolean }> {
@@ -146,45 +138,12 @@ function renderWidget(part: ToolPart, handlers: WidgetHandlers): React.ReactNode
       const { data, loading } = resolve<PlacesData>(
         part,
         (i) => ({ kind: "places", query: str(i.query), area: str(i.near) || undefined, places: [], sources: [] }),
-        "Looking up places in Exa's index",
+        "Looking on the map",
       );
       return <PlacesMap data={data} loading={loading} />;
     }
-    case "tool-searchFlights": {
-      const { data, loading } = resolve<FlightsData>(
-        part,
-        (i) => ({
-          kind: "flights",
-          origin: str(i.origin, "…"),
-          destination: str(i.destination, "…"),
-          departDate: str(i.departDate),
-          returnDate: str(i.returnDate) || undefined,
-          adults: typeof i.adults === "number" ? i.adults : 1,
-          options: [],
-          sources: [],
-        }),
-        "Asking Jinko for live fares",
-      );
-      return <Flights data={data} loading={loading} />;
-    }
-    case "tool-searchHotels": {
-      const { data, loading } = resolve<HotelsData>(
-        part,
-        (i) => ({
-          kind: "hotels",
-          location: str(i.location, "…"),
-          checkIn: str(i.checkIn),
-          checkOut: str(i.checkOut),
-          guests: typeof i.guests === "number" ? i.guests : 2,
-          options: [],
-          sources: [],
-        }),
-        "Asking Jinko for live room rates",
-      );
-      return <Hotels data={data} loading={loading} />;
-    }
-    case "tool-searchProducts": {
-      const { data, loading } = resolve<ProductsData>(part, (i) => ({ kind: "products", query: str(i.query), products: [], sources: [] }), "Searching shops and reviews");
+    case "tool-comparePrices": {
+      const { data, loading } = resolve<ProductsData>(part, (i) => ({ kind: "products", query: str(i.product), products: [], sources: [] }), "Looking at shop offers country by country");
       return <Products data={data} loading={loading} />;
     }
     case "tool-sift": {
@@ -224,10 +183,6 @@ function renderWidget(part: ToolPart, handlers: WidgetHandlers): React.ReactNode
       const { data, loading } = resolve<JobCardData>(part, () => ({ kind: "job", action: "refused", draft: { title: "Your job" }, sources: [] }), "Deleting the job");
       return <JobCard data={data} loading={loading} />;
     }
-    case "tool-getStocks": {
-      const { data, loading } = resolve<StocksData>(part, () => ({ kind: "stocks", quotes: [], sources: [] }), "Fetching live prices");
-      return <Stocks data={data} loading={loading} />;
-    }
     case "tool-getPredictionMarket": {
       const { data, loading } = resolve<PredictionMarketData>(
         part,
@@ -235,10 +190,6 @@ function renderWidget(part: ToolPart, handlers: WidgetHandlers): React.ReactNode
         "Reading live odds",
       );
       return <PredictionMarket data={data} loading={loading} />;
-    }
-    case "tool-searchImages": {
-      const { data, loading } = resolve<ImagesData>(part, (i) => ({ kind: "images", query: str(i.query), images: [], sources: [] }), "Finding images");
-      return <Images data={data} loading={loading} />;
     }
     case "tool-getWeather": {
       const { data, loading } = resolve<WeatherData>(part, (i) => ({ kind: "weather", location: str(i.location, "…"), days: [], sources: [] }), "Fetching the forecast");

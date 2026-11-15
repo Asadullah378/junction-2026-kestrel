@@ -15,7 +15,7 @@ type Row =
 function toRow(part: ToolPart): Row | null {
   const running = part.state === "input-streaming" || part.state === "input-available";
   const failed = part.state === "output-error" ? part.errorText : undefined;
-  if (part.type === "tool-webSearch") {
+  if (part.type === "tool-webSearch" || part.type === "tool-searchNews") {
     const output = part.state === "output-available" ? (part.output as WebSearchData) : undefined;
     const query = (part.input as { query?: string } | undefined)?.query ?? output?.query ?? "";
     return { kind: "search", id: part.toolCallId, label: query, running, results: output?.results ?? [], error: failed ?? output?.error };
@@ -67,7 +67,7 @@ export function ActivityGroup({ parts }: { parts: ToolPart[] }) {
           {current?.kind === "read" ? <BookOpenText className="size-3.5" /> : <Search className="size-3.5" />}
         </span>
         <span className={cn("min-w-0 flex-1 truncate", active && "text-shimmer")}>
-          {active ? (current!.kind === "search" ? `Searching: ${current!.label || "the web"}` : `Reading ${current!.label || "pages"}`) : `Searched the web with Exa: ${summary}`}
+          {active ? (current!.kind === "search" ? `Searching: ${current!.label || "the web"}` : `Reading ${current!.label || "pages"}`) : `Searched the live web: ${summary}`}
         </span>
         {sources.length > 0 ? (
           <span className="flex shrink-0 items-center gap-1.5">

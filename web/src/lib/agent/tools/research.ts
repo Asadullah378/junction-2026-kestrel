@@ -3,7 +3,7 @@ import "server-only";
 import { generateText, isStepCount, Output, streamText, tool, type LanguageModel } from "ai";
 import { z } from "zod";
 import { decide, decisionsConfigured, type DecisionQuestion, type YesNoAnswer } from "@/lib/decisions/client";
-import { exaContents, exaSearch, type ExaResult } from "@/lib/exa/client";
+import { livePages, liveSearch, type LiveResult } from "@/lib/sources/client";
 import { domainOf, toSource, type ResearchAgent, type ResearchData, type ResearchStep, type Source } from "@/lib/widgets/types";
 import type { ResearchDepth } from "../depth";
 import { agentProviderOptions, extractionProviderOptions, workerProviderOptions } from "../providers";
@@ -11,7 +11,7 @@ import { clip, errorMessage, type ToolContext } from "./context";
 
 /*
  * Deep research: the question is split into angles and one sub-agent per angle works in
- * parallel on the fast model, each with its own Exa search and read tools and its own
+ * parallel on the fast model, each with its own search and read tools and its own
  * context. Their progress streams to the UI as it happens. The main model then writes the
  * report from their findings, and that streams in too.
  *
@@ -81,9 +81,9 @@ function keep(run: Run, agent: ResearchAgent, sources: Source[]) {
 
 /**
  * Which of these pages bear on the angle, most relevant first. One request to the decision model
- * answers for all of them at once. If it cannot be asked, every page is kept in the order Exa gave.
+ * answers for all of them at once. If it cannot be asked, every page is kept in the order the search gave.
  */
-async function relevant(run: Run, agent: ResearchAgent, pages: ExaResult[], signal?: AbortSignal): Promise<ExaResult[]> {
+async function relevant(run: Run, agent: ResearchAgent, pages: LiveResult[], signal?: AbortSignal): Promise<LiveResult[]> {
   if (!run.depth.triage || pages.length < 3 || !decisionsConfigured()) return pages;
   const questions: Record<string, DecisionQuestion> = {};
   pages.forEach((_, i) => {
@@ -109,7 +109,7 @@ async function relevant(run: Run, agent: ResearchAgent, pages: ExaResult[], sign
 }
 
 /** One page as a sub-agent reads it in a search result: the strongest pages get more of their text. */
-function passage(r: ExaResult, n: number, full: boolean): string {
+function passage(r: LiveResult, n: number, full: boolean): string {
   const date = r.publishedDate ? ` (${r.publishedDate.slice(0, 10)})` : "";
   const quotes = (r.highlights ?? [])
     .slice(0, full ? 2 : 1)
@@ -128,26 +128,16 @@ function researcherTools(run: Run, agent: ResearchAgent, signal?: AbortSignal) {
     agent.steps.push(step);
     changed();
     try {
-      const days = window === "week" ? 7 : window === "month" ? 31 : window === "year" ? 366 : undefined;
       const answers = await Promise.allSettled(
         queries.map((query) =>
-          exaSearch(
-            {
-              query,
-              numResults: depth.resultsPerSearch,
-              startPublishedDate: days ? new Date(Date.now() - days * 86_400_000).toISOString() : undefined,
-              userLocation: ctx.country,
-              contents: { highlights: { maxCharacters: 700 } },
-            },
-            { meter: ctx.meter, signal },
-          ),
+          liveSearch({ query, numResults: depth.resultsPerSearch, recency: window, country: ctx.country, highlights: 700 }, { meter: ctx.meter, signal }),
         ),
       );
       const lists = answers.map((a) => (a.status === "fulfilled" ? a.value.results : []));
       const failed = answers.find((a) => a.status === "rejected") as PromiseRejectedResult | undefined;
       if (lists.every((list) => list.length === 0)) return failed ? `Search failed: ${errorMessage(failed.reason)}` : "No results. Try different wording.";
 
-      // The standard depth is the plain search it has always been: every result, as Exa ranked them.
+      // The standard depth is the plain search it has always been: every result, as the search ranked them.
       if (!several && !depth.triage) {
         const results = lists[0];
         step.domains = [...new Set(results.map((r) => domainOf(r.url)))].slice(0, 5);
@@ -160,7 +150,7 @@ function researcherTools(run: Run, agent: ResearchAgent, signal?: AbortSignal) {
       // Taken in turn from each wording, one entry per page, and only pages this sub-agent has not been given yet.
       const given = run.given.get(agent.id) ?? new Set<string>();
       run.given.set(agent.id, given);
-      const fresh: ExaResult[] = [];
+      const fresh: LiveResult[] = [];
       const inCall = new Set<string>();
       for (let rank = 0; rank < depth.resultsPerSearch; rank++) {
         for (const list of lists) {
@@ -199,8 +189,8 @@ function researcherTools(run: Run, agent: ResearchAgent, signal?: AbortSignal) {
     agent.steps.push(step);
     changed();
     try {
-      const res = await exaContents({ urls, text: { maxCharacters: 6000 } }, { meter: ctx.meter, signal });
-      const pages = res.results.filter((page) => page.text);
+      const res = await livePages(urls, { maxCharacters: 6000, country: ctx.country }, { meter: ctx.meter, signal });
+      const pages = res.pages.filter((page) => page.text);
       if (pages.length === 0) return urls.length > 1 ? "Could not read those pages." : "Could not read that page.";
       if (pages.length === 1 && pages[0].title) step.label = clip(pages[0].title, 70);
       for (const page of pages) run.checked.add(pageKey(page.url));

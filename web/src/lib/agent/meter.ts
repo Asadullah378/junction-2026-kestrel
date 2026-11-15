@@ -1,6 +1,6 @@
 import type { LanguageModelUsage } from "ai";
 import type { DecisionMeter } from "@/lib/decisions/client";
-import type { WebMeter } from "@/lib/exa/client";
+import type { WebMeter } from "@/lib/sources/http";
 import { costOf } from "./models";
 import { EMPTY_USAGE, type RunStats, type TokenUsage } from "./stats";
 
@@ -27,7 +27,7 @@ export function addUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
 }
 
 /**
- * Tracks what one user request costs: Exa calls, the decision model, plus the tokens spent by
+ * Tracks what one user request costs: web-data calls, the decision model, plus the tokens spent by
  * helper model calls and sub-agents that run inside tools. The main agent's own usage comes from the
  * AI SDK when the stream finishes and is added in the route.
  */

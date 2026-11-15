@@ -1,5 +1,5 @@
 import { databaseReady } from "@/lib/db/start";
-import { webRequestsSent } from "@/lib/exa/client";
+import { webRequestsSent } from "@/lib/sources/http";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,9 @@ export async function GET() {
   const body = {
     ok: problem === null,
     database: problem === null,
-    search: has("EXA_API_KEY"),
+    // The two web-data services: Context.dev finds, reads and watches; Oxylabs localises and prices.
+    search: has("CONTEXT_DEV_API_KEY"),
+    prices: has("OXYLABS_WEB_API_KEY"),
     // The modes run on two providers and voice on one of them: each is either set up or not.
     models: has("ANTHROPIC_AWS_API_KEY") && has("ANTHROPIC_AWS_WORKSPACE_ID") && has("AWS_REGION") && has("GOOGLE_API_KEY"),
     voice: has("GOOGLE_API_KEY"),

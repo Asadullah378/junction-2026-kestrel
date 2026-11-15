@@ -5,14 +5,13 @@ import type { RunStats } from "../stats";
 import { browserActTool, browserCloseTool, browserLookTool, browserOpenTool, browserReadTool, requestUserActionTool } from "./browser";
 import { askUserTool, requestLocationTool, showActionsTool, showComparisonTool, showKeyFactsTool, showWidgetTool, updatePlanTool } from "./compose";
 import type { ToolContext } from "./context";
-import { createJobTool, deleteJobTool, listJobsTool, updateJobTool } from "./jobs";
-import { getPredictionMarketTool, getStocksTool } from "./markets";
+import { createJobTool, createWatchTool, deleteJobTool, listJobsTool, updateJobTool } from "./jobs";
+import { getPredictionMarketTool } from "./markets";
 import { findPlacesTool, getWeatherTool } from "./places";
 import { deepResearchTool } from "./research";
-import { readPagesTool, searchImagesTool, webSearchTool } from "./search";
-import { searchProductsTool } from "./shopping";
+import { readPagesTool, searchNewsTool, webSearchTool } from "./search";
+import { comparePricesTool } from "./shopping";
 import { siftTool } from "./sift";
-import { searchFlightsTool, searchHotelsTool } from "./travel";
 
 /**
  * The agent's tools for one request. Each tool's output is the payload its widget renders.
@@ -35,20 +34,17 @@ export function createTools(ctx: ToolContext, mainModel: LanguageModel) {
 export const DESKTOP_ONLY = ["browserOpen", "browserAct", "browserRead", "browserLook", "browserClose", "requestUserAction"] as const;
 
 /** The tools that make and manage the user's scheduled jobs. */
-export const JOB_TOOLS = ["createJob", "listJobs", "updateJob", "deleteJob"] as const;
+export const JOB_TOOLS = ["createJob", "createWatch", "listJobs", "updateJob", "deleteJob"] as const;
 
 function allTools(ctx: ToolContext, mainModel: LanguageModel) {
   return {
     webSearch: webSearchTool(ctx),
     readPages: readPagesTool(ctx),
     findPlaces: findPlacesTool(ctx),
-    searchFlights: searchFlightsTool(ctx),
-    searchHotels: searchHotelsTool(ctx),
-    searchProducts: searchProductsTool(ctx),
+    searchNews: searchNewsTool(ctx),
+    comparePrices: comparePricesTool(ctx),
     sift: siftTool(ctx),
-    getStocks: getStocksTool(ctx),
     getPredictionMarket: getPredictionMarketTool(ctx),
-    searchImages: searchImagesTool(ctx),
     getWeather: getWeatherTool(ctx),
     deepResearch: deepResearchTool(ctx, mainModel),
     showComparison: showComparisonTool(),
@@ -65,6 +61,7 @@ function allTools(ctx: ToolContext, mainModel: LanguageModel) {
     browserClose: browserCloseTool(),
     requestUserAction: requestUserActionTool(),
     createJob: createJobTool(ctx),
+    createWatch: createWatchTool(ctx),
     listJobs: listJobsTool(ctx),
     updateJob: updateJobTool(ctx),
     deleteJob: deleteJobTool(ctx),

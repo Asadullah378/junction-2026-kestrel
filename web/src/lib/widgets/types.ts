@@ -22,10 +22,10 @@ export type Source = {
 
 /** Present on every tool output. */
 export type WidgetBase = {
-  /** Set while the tool is still working: a short present-tense line such as "Asking Jinko for live fares". */
+  /** Set while the tool is still working: a short present-tense line such as "Searching the live web". */
   stage?: string;
   sources: Source[];
-  /** What this call cost on Exa, in US dollars. */
+  /** What this call cost in web data, in US dollars. */
   webCostUsd?: number;
   /** Set when the tool could not get the data. The widget shows this instead of content. */
   error?: string;
@@ -47,6 +47,10 @@ export type WebSearchData = WidgetBase & {
 export type ReadPagesData = WidgetBase & {
   kind: "pages";
   pages: Array<Source & { characters: number; excerpt: string; text: string }>;
+  /** Pages that could not be read, each with the reason: "example.com (the site answered 403)". */
+  unread?: string[];
+  /** Which service read each page, in order, when it was not the same one for all. */
+  readBy?: string[];
 };
 
 /* ───────────────────────── Places and maps ───────────────────────── */
@@ -187,6 +191,8 @@ export type ProductsData = WidgetBase & {
   products: Product[];
   /** One or two sentences recommending a choice. */
   verdict?: string;
+  /** What a watch needs to check these prices again later. Set on a price comparison. */
+  watchSpec?: import("@/lib/watches/types").WatchSpec;
 };
 
 /* ───────────────────────── Markets ───────────────────────── */
@@ -396,8 +402,12 @@ export type SiftData = WidgetBase & {
   /** How many single yes-or-no judgements were made, and how long they took together, in milliseconds. */
   judgements?: number;
   judgedMs?: number;
+  /** How long finding and reading the pages took, in milliseconds. */
+  searchMs?: number;
   /** Set when the pages were found but could not be checked. The items are then in search order, without verdicts. */
   unjudged?: string;
+  /** What a watch needs to keep looking for the same thing: the card's "Watch this" button sends it to /api/watches. */
+  watchSpec?: import("@/lib/watches/types").WatchSpec;
 };
 
 export type ActionItem = {

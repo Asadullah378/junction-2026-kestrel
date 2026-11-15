@@ -2,88 +2,65 @@ import "server-only";
 
 import { tool } from "ai";
 import { z } from "zod";
-import { exaSearch, type ExaEntity, type ExaResult } from "@/lib/exa/client";
+import { ctxScrape } from "@/lib/sources/contextdev";
 import { toSource, type Place, type PlacesData, type WeatherData, type WeatherDay } from "@/lib/widgets/types";
 import { errorMessage, type ToolContext } from "./context";
 import { liveStatus } from "./opening-hours";
 
 /*
- * Exa indexes 211M places and a weather feed as structured records under exa.ai/library.
- * Restricting a search to that domain returns them in about a second: place records come
- * back as `entities` with coordinates, hours, phone and rating; weather comes back as a
- * forecast table. No separate maps or weather API is needed.
+ * Places come from Google Maps, read through Context.dev's prebuilt Maps parser: one call returns
+ * up to twenty places with coordinates, opening hours, phone and rating as fields, with no prompt
+ * and no guessing. The weather comes straight from Open-Meteo, which needs no key.
  */
 
-const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+type MapsPlace = {
+  place_id?: string;
+  name?: string;
+  rating?: number | null;
+  number_of_reviews?: number | null;
+  website?: string | null;
+  google_maps_url?: string | null;
+  google_category?: string[] | null;
+  google_description?: string | null;
+  google_hours?: Array<{ day?: string; times?: string[] }> | null;
+  google_image?: string | null;
+  google_phone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  street_addr?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
+  borough?: string | null;
+};
 
-function titleCase(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
+/** Google wraps a place's own site in a redirect: "/url?q=https://example.com/&opi=…". */
+function ownSite(href: string | null | undefined): string | undefined {
+  if (!href) return undefined;
+  const wrapped = /[?&]q=([^&]+)/.exec(href)?.[1];
+  const url = wrapped ? decodeURIComponent(wrapped) : href;
+  return /^https?:\/\//.test(url) ? url : undefined;
 }
 
-function placeFromEntity(e: ExaEntity): Place | null {
-  const p = e.properties as {
-    name?: string;
-    description?: string | null;
-    categories?: string[];
-    address?: { street?: string | null; locality?: string | null; postcode?: string | null; country?: string | null };
-    location?: { latitude?: number; longitude?: number };
-    phoneNumbers?: string[];
-    websites?: string[];
-    status?: string;
-    hours?: Record<string, string>;
-    rating?: { score?: number; count?: number };
-  };
-  const lat = p.location?.latitude;
-  const lng = p.location?.longitude;
-  if (!p.name || typeof lat !== "number" || typeof lng !== "number") return null;
-  const category = p.categories?.[0]?.split(">").pop()?.trim();
-  const address = [p.address?.street, [p.address?.postcode, p.address?.locality].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-  const website = (p.websites ?? []).find((w) => /^https?:\/\//.test(w) && !/[?&](rwg_token|aid)=/.test(w));
-  const hours = p.hours ? DAYS.filter((d) => p.hours![d]).map((d) => ({ day: titleCase(d), hours: p.hours![d] })) : undefined;
+function placeFromMaps(p: MapsPlace): Place | null {
+  if (!p.name || typeof p.latitude !== "number" || typeof p.longitude !== "number") return null;
+  const hours = (p.google_hours ?? []).filter((h) => h.day && h.times?.length).map((h) => ({ day: h.day!, hours: h.times!.join(", ") }));
+  const address = [p.street_addr, [p.postal_code, p.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return {
-    id: e.id.split("/").pop() ?? e.id,
+    id: p.place_id ?? `${p.latitude},${p.longitude}`,
     name: p.name,
-    category,
-    description: p.description ?? undefined,
+    category: p.google_category?.[0] ?? undefined,
+    description: p.google_description ?? undefined,
     address: address || undefined,
-    area: p.address?.locality ?? undefined,
-    lat,
-    lng,
-    rating: p.rating?.score,
-    reviewCount: p.rating?.count,
-    status: p.status ? titleCase(p.status.replace(/_/g, " ")) : undefined,
-    hours: hours?.length ? hours : undefined,
-    phone: p.phoneNumbers?.[0],
-    website,
-    url: e.id,
-  };
-}
-
-/** Fallback: read a place page's markdown when no structured record came with it. */
-function placeFromPage(r: ExaResult): Place | null {
-  const text = r.text ?? "";
-  const field = (label: string) => text.match(new RegExp(`\\*\\*${label}:\\*\\*\\s*(.+)`))?.[1]?.trim();
-  const coords = field("Coordinates")?.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
-  if (!coords) return null;
-  const rating = field("Rating")?.match(/([\d.]+) out of 5(?: from ([\d,]+) reviews)?/);
-  const hours = [...text.matchAll(/^\|\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s*\|\s*([^|]+?)\s*\|/gm)]
-    .slice(0, 7)
-    .map((m) => ({ day: m[1], hours: m[2] }));
-  const paragraphs = text.split(/\n\n+/).filter((p) => p && !p.startsWith("#") && !p.startsWith("-") && !p.startsWith("|"));
-  return {
-    id: r.url.split("/").pop() ?? r.url,
-    name: text.match(/^#\s+(.+)/m)?.[1]?.trim() ?? r.title ?? "Place",
-    category: field("Categories")?.split(",")[0]?.trim(),
-    description: paragraphs[1]?.trim(),
-    address: field("Address"),
-    area: field("Area")?.split(",")[0]?.trim(),
-    lat: Number(coords[1]),
-    lng: Number(coords[2]),
-    rating: rating ? Number(rating[1]) : undefined,
-    reviewCount: rating?.[2] ? Number(rating[2].replace(/,/g, "")) : undefined,
-    status: field("Status"),
+    area: p.borough ?? p.city ?? undefined,
+    lat: p.latitude,
+    lng: p.longitude,
+    rating: p.rating ?? undefined,
+    reviewCount: p.number_of_reviews ?? undefined,
     hours: hours.length ? hours : undefined,
-    url: r.url,
+    phone: p.google_phone ?? undefined,
+    website: ownSite(p.website),
+    image: p.google_image ?? undefined,
+    url: p.google_maps_url ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name)}`,
   };
 }
 
@@ -116,47 +93,30 @@ export function findPlacesTool(ctx: ToolContext) {
       const area = aroundUser ? (ctx.coords?.label ? `Near you, ${ctx.coords.label}` : "Near you") : near;
       const base = { kind: "places" as const, query, area };
       try {
-        const res = await exaSearch(
-          aroundUser
-            ? {
-                query: `${query} near me`,
-                numResults: 10,
-                includeDomains: ["exa.ai"],
-                userLocation: { country: ctx.country, latitude: ctx.coords!.lat, longitude: ctx.coords!.lng },
-                contents: { text: { maxCharacters: 400 } },
-              }
-            : { query: `${query} in ${near}`, numResults: 10, includeDomains: ["exa.ai"], contents: { text: { maxCharacters: 1600 } } },
-          // A position changes as the user moves: do not reuse a cached "near me" answer.
-          { meter: ctx.meter, signal: abortSignal, cache: !aroundUser },
-        );
-        const byId = new Map<string, Place>();
-        for (const r of res.results) {
-          for (const e of r.entities ?? []) {
-            if (e.type !== "place") continue;
-            const place = placeFromEntity(e);
-            if (place && !byId.has(place.id)) byId.set(place.id, place);
-          }
-        }
+        // "Near me" centres the map on the user's own position; otherwise the area is part of the search.
+        const url = aroundUser
+          ? `https://www.google.com/maps/search/${encodeURIComponent(query)}/@${ctx.coords!.lat},${ctx.coords!.lng},14z`
+          : `https://www.google.com/maps/search/${encodeURIComponent(`${query} in ${near}`)}`;
+        // A position changes as the user moves: do not reuse a cached "near me" answer.
+        const page = await ctxScrape({ url, parser: "google-maps", fresh: aroundUser }, { meter: ctx.meter, signal: abortSignal });
+        const seen = new Set<string>();
         const ordered: Place[] = [];
-        if (!aroundUser) {
-          // Individual place pages are ranked by relevance to the query: keep that order first.
-          // (Around the user only the located list is used: single pages match the words "near me", not the position.)
-          for (const r of res.results) {
-            if (!r.url.includes("/library/place/")) continue;
-            const id = r.url.split("/").pop() ?? "";
-            const place = byId.get(id) ?? placeFromPage(r);
-            if (place && !ordered.some((p) => p.id === place.id)) ordered.push(place);
+        for (const raw of (page.parsed ?? []) as MapsPlace[]) {
+          const place = placeFromMaps(raw);
+          if (place && !seen.has(place.id)) {
+            seen.add(place.id);
+            ordered.push(place);
           }
         }
-        for (const place of byId.values()) if (!ordered.some((p) => p.id === place.id)) ordered.push(place);
+        if (ordered.length === 0 && page.failed) throw new Error("The map could not be read just now. Try again in a moment.");
 
-        let places = ordered.filter((p) => p.status?.toLowerCase() !== "permanently closed");
+        let places = ordered;
         if (origin) {
           places = places.map((p) => ({ ...p, distanceM: distanceM(origin, p) }));
           // Around the user, nearest first; drop anything implausibly far for a "near me" search.
           if (aroundUser) places = places.filter((p) => p.distanceM! < 40_000).sort((a, b) => a.distanceM! - b.distanceM!);
         }
-        // Exa's "open" means the business still exists. Work out whether it is open at this moment, in its own time zone.
+        // Work out whether each place is open at this moment, in its own time zone, from its opening hours.
         places = places.slice(0, 8).map((p) => ({ ...p, status: liveStatus(p) }));
         // Show the user's own position on the map only when the results are around it.
         const showOrigin = origin && places.some((p) => (p.distanceM ?? Infinity) < 30_000);
@@ -164,8 +124,8 @@ export function findPlacesTool(ctx: ToolContext) {
           ...base,
           places,
           origin: showOrigin ? origin : undefined,
-          sources: places.map((p) => toSource({ url: p.url, title: `${p.name} (Exa Places)` })),
-          webCostUsd: res.costDollars?.total,
+          sources: places.map((p) => toSource({ url: p.url, title: `${p.name} (Google Maps)` })),
+          webCostUsd: page.costUsd,
           error: places.length === 0 ? `No places found for "${query}" ${aroundUser ? "near you" : `near ${near}`}. Try a broader description or a larger area.` : undefined,
         };
       } catch (err) {
@@ -198,26 +158,22 @@ export function findPlacesTool(ctx: ToolContext) {
   });
 }
 
-const F_TO_C = (f: number) => Math.round(((f - 32) * 5) / 9);
-const MPH_TO_KPH = (mph: number) => Math.round(mph * 1.609);
+/** WMO weather codes, as Open-Meteo reports them, in a few words. */
+const CONDITIONS: Record<number, string> = {
+  0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 48: "Freezing fog",
+  51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle", 56: "Freezing drizzle", 57: "Freezing drizzle",
+  61: "Light rain", 63: "Rain", 65: "Heavy rain", 66: "Freezing rain", 67: "Freezing rain",
+  71: "Light snow", 73: "Snow", 75: "Heavy snow", 77: "Snow grains",
+  80: "Light showers", 81: "Showers", 82: "Heavy showers", 85: "Slight snow showers", 86: "Snow showers",
+  95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Thunderstorm with hail",
+};
+const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
 
-export function parseWeather(text: string, url: string): WeatherDay[] {
-  const start = url.match(/[?&]date=(\d{4}-\d{2}-\d{2})/)?.[1];
-  const first = start ? new Date(`${start}T12:00:00Z`) : new Date();
-  const rows = [...text.matchAll(/^\|\s*[A-Z][a-z]{2}\s+\d{1,2}\s*\|\s*([^|]+?)\s*\|\s*(-?\d+)°F\s*\|\s*(-?\d+)°F\s*\|\s*(\d+)%\s*\|\s*([\d.]+)mm\s*\|\s*(\d+)\s*mph\s*([A-Z]*)\s*\|/gm)];
-  return rows.map((m, i) => {
-    const date = new Date(first.getTime() + i * 86_400_000);
-    return {
-      date: date.toISOString().slice(0, 10),
-      condition: m[1],
-      highC: F_TO_C(Number(m[2])),
-      lowC: F_TO_C(Number(m[3])),
-      rainChance: Number(m[4]),
-      precipMm: Number(m[5]),
-      windKph: MPH_TO_KPH(Number(m[6])),
-      windDirection: m[7] || undefined,
-    };
-  });
+async function openMeteo<T>(url: string, signal?: AbortSignal): Promise<T> {
+  const timeout = AbortSignal.timeout(12_000);
+  const res = await fetch(url, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
+  if (!res.ok) throw new Error(`The weather service answered ${res.status}.`);
+  return (await res.json()) as T;
 }
 
 export function getWeatherTool(ctx: ToolContext) {
@@ -225,24 +181,44 @@ export function getWeatherTool(ctx: ToolContext) {
     description: "Get the weather forecast for a place (up to 14 days ahead) and show it as a forecast widget. Use it when weather affects a plan.",
     inputSchema: z.object({
       location: z.string().describe('City and country, for example "Espoo, Finland".'),
-      when: z.string().optional().describe('The period in plain words, for example "this weekend", "next 10 days", "tomorrow". Default: the next 7 days.'),
+      days: z.number().int().min(1).max(14).optional().describe("How many days ahead. Default 7."),
     }),
-    execute: async ({ location, when }, { abortSignal }): Promise<WeatherData> => {
+    execute: async ({ location, days: ahead }, { abortSignal }): Promise<WeatherData> => {
       const base = { kind: "weather" as const, location };
       try {
-        const res = await exaSearch(
-          { query: `weather forecast in ${location} ${when ?? "next 7 days"}`, numResults: 3, includeDomains: ["exa.ai"], contents: { text: { maxCharacters: 3500 } } },
-          { meter: ctx.meter, signal: abortSignal },
+        // The geocoder wants the place name alone; the country narrows a name that exists twice.
+        const [city, ...rest] = location.split(",").map((part) => part.trim()).filter(Boolean);
+        const found = await openMeteo<{ results?: Array<{ name: string; country?: string; admin1?: string; latitude: number; longitude: number }> }>(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city ?? location)}&count=5&language=en`,
+          abortSignal,
         );
-        const page = res.results.find((r) => r.url.includes("/library/weather/"));
-        const days = page ? parseWeather(page.text ?? "", page.url) : [];
-        const name = page?.text?.match(/Forecast for (.+?) - /)?.[1] ?? location;
+        const wanted = rest.join(" ").toLowerCase();
+        const spot = found.results?.find((r) => wanted && [r.country, r.admin1].some((part) => part && wanted.includes(part.toLowerCase()))) ?? found.results?.[0];
+        if (!spot) return { ...base, days: [], sources: [], error: `No forecast found for ${location}.` };
+        const forecast = await openMeteo<{
+          daily?: { time: string[]; weather_code: number[]; temperature_2m_max: number[]; temperature_2m_min: number[]; precipitation_probability_max: (number | null)[]; precipitation_sum: (number | null)[]; wind_speed_10m_max: (number | null)[]; wind_direction_10m_dominant: (number | null)[] };
+        }>(
+          `https://api.open-meteo.com/v1/forecast?latitude=${spot.latitude}&longitude=${spot.longitude}&timezone=auto&forecast_days=${ahead ?? 7}` +
+            "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant",
+          abortSignal,
+        );
+        const d = forecast.daily;
+        const days: WeatherDay[] = (d?.time ?? []).map((date, i) => ({
+          date,
+          condition: CONDITIONS[d!.weather_code[i]] ?? "Mixed",
+          highC: Math.round(d!.temperature_2m_max[i]),
+          lowC: Math.round(d!.temperature_2m_min[i]),
+          rainChance: d!.precipitation_probability_max[i] ?? undefined,
+          precipMm: d!.precipitation_sum[i] ?? undefined,
+          windKph: d!.wind_speed_10m_max[i] != null ? Math.round(d!.wind_speed_10m_max[i]!) : undefined,
+          windDirection: d!.wind_direction_10m_dominant[i] != null ? COMPASS[Math.round(d!.wind_direction_10m_dominant[i]! / 22.5) % 16] : undefined,
+        }));
+        const name = [spot.name, spot.admin1 && spot.admin1 !== spot.name ? spot.admin1 : null, spot.country].filter(Boolean).join(", ");
         return {
           ...base,
           location: name,
           days,
-          sources: page ? [toSource({ url: page.url, title: `${name} forecast (Open-Meteo via Exa)` })] : [],
-          webCostUsd: res.costDollars?.total,
+          sources: [toSource({ url: `https://open-meteo.com/en/docs?latitude=${spot.latitude}&longitude=${spot.longitude}`, title: `${name} forecast (Open-Meteo)` })],
           error: days.length === 0 ? `No forecast found for ${location}.` : undefined,
         };
       } catch (err) {
