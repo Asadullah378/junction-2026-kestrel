@@ -3,7 +3,7 @@ import "server-only";
 import { tool } from "ai";
 import { z } from "zod";
 import { decide, decisionsConfigured, type ChoiceAnswer, type DecisionMeter, type DecisionQuestion, type YesNoAnswer } from "@/lib/decisions/client";
-import { liveSearch, type LiveResult, type Recency, type WebMeter } from "@/lib/sources/client";
+import { liveLatePages, liveSearch, type LiveResult, type Recency, type WebMeter } from "@/lib/sources/client";
 import { SIFT_SURE, toSource, type SiftData, type SiftItem, type SiftVerdict } from "@/lib/widgets/types";
 import { clip, errorMessage, type ToolContext } from "./context";
 
@@ -33,6 +33,14 @@ const PASSAGE_CHARS = 1400;
  */
 const READ_BUDGET_MS = 5_000;
 const THOROUGH_READ_BUDGET_MS = 9_000;
+/**
+ * Some nights the pages load slowly and the search comes back with the text of few of them
+ * (15 Nov 2026, 04:10: none of 40 in five seconds). When more than this share of the pages has
+ * no text, the missing ones are read one by one, with this much more time. On a quick night
+ * nothing is read twice and a sift takes no longer than it did.
+ */
+const LATE_SHARE = 0.25;
+const LATE_BUDGET_MS = 4_000;
 /** A page with less than this to read cannot be judged. */
 const MIN_CHARS = 200;
 
@@ -63,10 +71,12 @@ export const pageKey = (url: string) => url.replace(/#.*$/, "").replace(/\/$/, "
 
 const readable = (r: LiveResult) => `${r.text ?? ""} ${(r.highlights ?? []).join(" ")}`.replace(/\s+/g, " ").trim();
 
-/** One page as the judge reads it. */
+const hasText = (r: LiveResult) => (r.text ?? "").trim().length >= MIN_CHARS;
+
+/** One page as the judge reads it. A page that came without passages gives more of its opening instead. */
 function pageText(r: LiveResult, n: number): string {
-  const opening = clip((r.text ?? "").replace(/\s+/g, " "), OPENING_CHARS);
   const passages = (r.highlights ?? []).map((h) => `- ${clip(h.replace(/\s+/g, " "), PASSAGE_CHARS)}`).join("\n");
+  const opening = clip((r.text ?? "").replace(/\s+/g, " "), OPENING_CHARS + Math.max(0, PASSAGE_CHARS - passages.length));
   return `[Page ${n}] ${r.title ?? ""}\n${r.url}\n${opening}${passages ? `\nPassages from further down the page:\n${passages}` : ""}`;
 }
 
@@ -93,6 +103,8 @@ export type SiftFound = {
   listed: SiftItem[];
   /** Pages that came back with nothing to read. */
   unreadable: number;
+  /** Pages whose text came from a second read, because the search returned before they had loaded. */
+  readLate: number;
   webCostUsd: number;
   searchMs: number;
   /** Set when nothing came back at all. */
@@ -114,32 +126,51 @@ export async function siftFind(spec: SiftSpec, opts: Meters = {}): Promise<SiftF
       ),
     ),
   );
-  const searchMs = Date.now() - started;
   // Taken in turn from each search, so every wording contributes its best pages before any is cut.
   const lists = searches.map((s) => (s.status === "fulfilled" ? s.value.results : []));
   const found: LiveResult[] = [];
   for (let rank = 0; rank < perQuery; rank++) for (const list of lists) if (list[rank]) found.push(list[rank]);
-  const webCostUsd = Math.round(searches.reduce((sum, s) => sum + (s.status === "fulfilled" ? s.value.costUsd : 0), 0) * 1e5) / 1e5;
+  let costUsd = searches.reduce((sum, s) => sum + (s.status === "fulfilled" ? s.value.costUsd : 0), 0);
+  const cost = () => Math.round(costUsd * 1e5) / 1e5;
   if (found.length === 0) {
     const failed = searches.find((s) => s.status === "rejected");
-    return { pages: [], listed: [], unreadable: 0, webCostUsd, searchMs, error: failed ? errorMessage((failed as PromiseRejectedResult).reason) : "Nothing was found. Try describing it differently." };
+    return { pages: [], listed: [], unreadable: 0, readLate: 0, webCostUsd: cost(), searchMs: Date.now() - started, error: failed ? errorMessage((failed as PromiseRejectedResult).reason) : "Nothing was found. Try describing it differently." };
   }
 
-  // One entry per page, and only pages with something to read.
+  // One entry per page.
   const seen = new Set<string>();
-  let unreadable = 0;
-  const pages = found
-    .filter((r) => {
-      const key = pageKey(r.url);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      if (readable(r).length >= MIN_CHARS) return true;
-      unreadable += 1;
-      return false;
-    })
-    .slice(0, limit);
+  const unique = found.filter((r) => {
+    const key = pageKey(r.url);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // The search was cut short: give the pages still missing a second, shorter chance.
+  const wanted = unique.slice(0, limit);
+  const missing = wanted.filter((r) => !hasText(r));
+  let readLate = 0;
+  if (missing.length > wanted.length * LATE_SHARE) {
+    const late = await liveLatePages(missing.map((r) => r.url), { budgetMs: LATE_BUDGET_MS }, { meter: opts.meter, signal: opts.signal, cache: opts.cache });
+    costUsd += late.costUsd;
+    for (const r of missing) {
+      const got = late.texts.get(r.url);
+      if (!got) continue;
+      r.text = got.text;
+      r.title ??= got.title;
+      r.publishedDate ??= got.publishedDate;
+      r.image ??= got.image;
+      readLate += 1;
+    }
+  }
+  const searchMs = Date.now() - started;
+
+  // Only pages with something to read are judged. A page further down the results takes the place of one that has nothing.
+  const canRead = (r: LiveResult) => readable(r).length >= MIN_CHARS;
+  const pages = unique.filter(canRead).slice(0, limit);
+  const unreadable = wanted.filter((r) => !canRead(r)).length;
   const listed = pages.map((r): SiftItem => ({ ...toSource({ url: r.url, title: r.title, publishedDate: r.publishedDate, snippet: clip(r.highlights?.[0] ?? r.description, 240) || undefined }), image: r.image ?? undefined }));
-  return { pages, listed, unreadable, webCostUsd, searchMs, error: pages.length === 0 ? "The pages that were found had nothing to read. Try describing it differently." : undefined };
+  return { pages, listed, unreadable, readLate, webCostUsd: cost(), searchMs, error: pages.length === 0 ? "The pages that were found had nothing to read. Try describing it differently." : undefined };
 }
 
 export type SiftJudged = {

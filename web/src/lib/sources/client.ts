@@ -108,6 +108,42 @@ export type LivePagesResponse = { pages: LiveResult[]; unread: Array<{ url: stri
 /** A page with less than this is taken as not read: an empty shell, a consent wall, a block page. */
 const TOO_SHORT = 200;
 
+export type LiveLateResponse = { texts: Map<string, { text: string; title?: string; publishedDate?: string; image?: string }>; costUsd: number };
+
+/**
+ * The text of pages a search returned without it, read one by one within a time limit.
+ *
+ * A search stops waiting for a slow page when its reading time is up, but the read it started
+ * goes on at Context.dev, so asking for the page by itself a moment later usually gets it.
+ * Measured on 15 Nov 2026 at 04:10, when reads were slow: a search returned the text of none of
+ * its 40 pages in five seconds; asked one by one, 29 answered within three seconds more, 34
+ * within four and 37 within five. Oxylabs, asked at the same moment, was behind on every page,
+ * so it is not asked here.
+ *
+ * A read still running when the time is up is dropped. What it cost is then not known and not
+ * counted.
+ */
+export async function liveLatePages(urls: string[], want: { budgetMs: number }, opts: Opts = {}): Promise<LiveLateResponse> {
+  const deadline = AbortSignal.timeout(want.budgetMs);
+  const signal = opts.signal ? AbortSignal.any([opts.signal, deadline]) : deadline;
+  const texts: LiveLateResponse["texts"] = new Map();
+  let costUsd = 0;
+  await Promise.all(
+    urls.map(async (url) => {
+      try {
+        const page = await ctxScrape({ url, markdown: true }, { ...opts, signal });
+        costUsd += page.costUsd;
+        const text = page.markdown?.trim() ?? "";
+        if (text.length >= TOO_SHORT) texts.set(url, { text, title: page.meta.title, publishedDate: page.meta.publishedTime ?? page.meta.modifiedTime, image: page.meta.image });
+      } catch (err) {
+        if (opts.signal?.aborted) throw err;
+        // Not read in time, or not readable: the page stays without its text.
+      }
+    }),
+  );
+  return { texts, costUsd };
+}
+
 /**
  * Read known pages in full. Each is asked of Context.dev first; one it cannot read is tried once
  * through Oxylabs with JavaScript run. `fresh` skips cached copies.
