@@ -93,7 +93,7 @@ pnpm install
 pnpm dev                     # http://localhost:3000
 ```
 
-Sign in with the admin email and password from `.env.local`. Tests: `pnpm typecheck`, `pnpm lint`, `pnpm test:diff` (the comparison), and `pnpm test:watch` against a running server (a watch from end to end, with a signed webhook).
+Sign in with the admin email and password from `.env.local`. Tests: `pnpm typecheck`, `pnpm lint`, `pnpm test:diff` (the comparison), `pnpm test:offers` (which shop offer is the product, and the cheapest), and `pnpm test:watch` against a running server (a watch from end to end, with a signed webhook).
 
 ## Where things are
 

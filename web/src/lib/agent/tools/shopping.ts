@@ -6,6 +6,7 @@ import { oxyShopping, type OxyOffer } from "@/lib/sources/oxylabs";
 import type { WebMeter } from "@/lib/sources/http";
 import { toSource, type Product, type ProductsData, type Source } from "@/lib/widgets/types";
 import { errorMessage, type ToolContext } from "./context";
+import { pickOffers } from "./offers";
 
 /*
  * One product, priced country by country. Oxylabs runs Google Shopping as someone in each
@@ -39,79 +40,22 @@ export type CountryPrices = {
   error?: string;
 };
 
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
-
-/**
- * An offer is the product when its title names the brand and carries the rest of the name in one
- * piece: "Sony … WH-1000XM6", "Nintendo Switch 2". Words scattered through a title do not count,
- * or "Nintendo Switch … Luigi's Mansion 2" would pass for a Switch 2.
- */
-function isProduct(title: string, product: string): boolean {
-  const have = norm(title);
-  const [brand, ...rest] = product.split(/\s+/).map(norm).filter(Boolean);
-  if (!brand) return false;
-  return have.includes(brand) && (rest.length === 0 || have.includes(rest.join("")));
-}
-
-/** Second-hand and "compatible with" offers are not the product at its price. Words for them in the languages of the countries looked in. */
-const NOT_NEW = /\busat[oa]\b|\busad[oa]\b|gebruikt|\bbrugt\b|\bgrade [a-d]\b|open(ed)?[ -]?box|geopende doos|b-?ware|outlet|demo ?(model|kappale)|skins?\b|wraps?\b|refurbish|renewed|reacondicionad|ricondizionat|reconditionn|gebraucht|wie neu|käytetty|begagnad|occasion|\bused\b|second ?hand|tweedehands|kompatib|compatib|yhteensopiva|ersatz|replacement|reservdel|varaosa/i;
-
-/** Shops and marketplaces that sell used goods or private listings: their prices are not a shop's price for a new one. */
-const SECOND_HAND = /segunda mano|second ?hand|\bused\b|usato|occasion|gebraucht|käytetty|begagnad|refurb|leboncoin|\bcex\b|wallapop|back ?market|rebuy|swappie|\bebay\b|vinted|marktplaats|kleinanzeigen|\btori\b|blocket|subito|tradera|huuto|ricardo|cash ?converters|realcash/i;
-
-/**
- * Cases, ear pads and spare parts carry the product's name too, and for some products there are
- * more of them than of the product itself. So does the odd listing with a wild price. The
- * product's own price is where the money is: of every stretch of prices (lowest to 1.6 times
- * lowest) take the one whose offers add up to the most, and keep what lies in or just around it.
- * A lone offer cannot make a stretch when there are several to choose from, so one wild price
- * does not win.
- */
-function priceBand(prices: number[]): { low: number; high: number } | null {
-  if (prices.length === 0) return null;
-  const sorted = [...prices].sort((a, b) => a - b);
-  const needs = sorted.length >= 4 ? 2 : 1;
-  let best: { low: number; sum: number } | null = null;
-  for (let i = 0; i < sorted.length; i++) {
-    let count = 0;
-    let sum = 0;
-    for (let j = i; j < sorted.length && sorted[j] <= sorted[i] * 1.6; j++) {
-      count += 1;
-      sum += sorted[j];
-    }
-    if (count >= needs && (!best || sum > best.sum)) best = { low: sorted[i], sum };
-  }
-  if (!best) return null;
-  return { low: best.low * 0.8, high: best.low * 1.8 };
-}
-
-/** The cheapest offer for one product in each country, all countries asked at once. */
+/** The cheapest offer for one product in each country, all countries asked at once. Which offer that is, is decided in offers.ts. */
 export async function pricesByCountry(product: string, countries: string[], opts: { meter?: WebMeter; signal?: AbortSignal; maxPrice?: number; cache?: boolean } = {}): Promise<{ rows: CountryPrices[]; ms: number }> {
   const started = Date.now();
   const seen = await Promise.all(
     countries.map(async (country) => {
       try {
         const res = await oxyShopping({ query: product, location: country, maxPrice: opts.maxPrice }, { meter: opts.meter, signal: opts.signal, cache: opts.cache });
-        return { country, offers: res.offers.filter((o) => isProduct(o.title, product) && !NOT_NEW.test(o.title) && !SECOND_HAND.test(o.merchant ?? "")), pageUrl: res.pageUrl, error: undefined as string | undefined };
+        return { country, offers: res.offers, pageUrl: res.pageUrl, error: undefined as string | undefined };
       } catch (err) {
         if (opts.signal?.aborted) throw err;
         return { country, offers: [] as OxyOffer[], pageUrl: null, error: errorMessage(err) };
       }
     }),
   );
-  // One band per currency, from every country's offers together: a country with two offers still gets a sound band.
-  const bands = new Map<string, { low: number; high: number } | null>();
-  for (const currency of new Set(seen.flatMap((c) => c.offers.map((o) => o.currency)))) {
-    bands.set(currency, priceBand(seen.flatMap((c) => c.offers.filter((o) => o.currency === currency).map((o) => o.price))));
-  }
-  const rows = seen.map((c): CountryPrices => {
-    const matching = c.offers.filter((o) => {
-      const band = bands.get(o.currency);
-      return !band || (o.price >= band.low && o.price <= band.high);
-    });
-    const best = matching.length ? matching.reduce((a, b) => (b.price < a.price ? b : a)) : null;
-    return { country: c.country, best, matched: matching.length, highest: matching.length ? Math.max(...matching.map((o) => o.price)) : null, pageUrl: c.pageUrl, error: c.error };
-  });
+  const picked = pickOffers(product, seen);
+  const rows = seen.map((c, i): CountryPrices => ({ country: c.country, best: picked[i].best, matched: picked[i].matched, highest: picked[i].highest, pageUrl: c.pageUrl, error: c.error }));
   return { rows, ms: Date.now() - started };
 }
 

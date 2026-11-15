@@ -21,6 +21,7 @@
     "test:notify": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/notify-test.mjs",
     "icons": "electron scripts/make-icons.cjs",
     "test:diff": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/watch-diff-test.mjs",
+    "test:offers": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/offers-test.mjs",
     "test:watch": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/watch-test.mjs"
   },
   "dependencies": {
