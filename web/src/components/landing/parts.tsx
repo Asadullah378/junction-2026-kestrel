@@ -207,9 +207,9 @@ function youtubeId(url: string): string | null {
 
 /**
  * The still shown before a video file is played: a frame of the film itself, as a file in
- * public/landing (for example "/landing/demo-poster.jpg"). None until Kestrel's film exists.
+ * public/landing. A new film needs a new still.
  */
-const DEMO_POSTER: string | undefined = undefined;
+const DEMO_POSTER: string | undefined = "/landing/demo-poster.jpg";
 
 /**
  * The demo. `src` is a YouTube link or the address of a video file; it comes from the
