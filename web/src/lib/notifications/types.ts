@@ -16,7 +16,9 @@ export type NotifyKind =
   /** A job has run and has a result. */
   | "job_done"
   /** A job could not run, or broke off. */
-  | "job_failed";
+  | "job_failed"
+  /** A watch looked again and something was different. */
+  | "watch_changed";
 
 export type NotifyCategory = "chats" | "browser" | "jobs";
 

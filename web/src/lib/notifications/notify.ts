@@ -30,12 +30,12 @@ export type NotifyInput = NewNotification & {
 
 export type Notified = { item: NotificationItem | null; emailed: boolean };
 
-const LABEL: Record<NotifyKind, string> = { chat_done: "Chat finished", needs_you: "Waiting for you", job_done: "Job result", job_failed: "Job problem" };
+const LABEL: Record<NotifyKind, string> = { chat_done: "Chat finished", needs_you: "Waiting for you", job_done: "Result", job_failed: "Problem", watch_changed: "Something changed" };
 
 /** Where a click on a notice goes: the chat, or the job's page. Used by emails; the interface builds its own. */
 export function linkFor(item: { conversationId?: string; jobId?: string; runId?: string }): string {
   const site = siteUrl();
-  if (item.jobId) return `${site}/jobs?job=${encodeURIComponent(item.jobId)}${item.runId ? `&run=${encodeURIComponent(item.runId)}` : ""}`;
+  if (item.jobId) return `${site}/watches?job=${encodeURIComponent(item.jobId)}${item.runId ? `&run=${encodeURIComponent(item.runId)}` : ""}`;
   if (item.conversationId) return `${site}/chat/${encodeURIComponent(item.conversationId)}`;
   return site;
 }
@@ -75,7 +75,7 @@ async function emailIfDue(input: NotifyInput, item: NotificationItem, waited: bo
       heading: page?.heading ?? item.title,
       lead: page?.lead,
       bodyHtml: page?.bodyHtml ?? (item.body ? paragraphs(item.body) : undefined),
-      button: page?.button ?? { label: item.jobId ? "Open the job" : `Open in ${APP_NAME}`, href: link },
+      button: page?.button ?? { label: item.jobId ? "Open it" : `Open in ${APP_NAME}`, href: link },
       why: page?.why,
       preview: page?.preview ?? (item.body || item.title),
     });

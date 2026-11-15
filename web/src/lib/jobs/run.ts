@@ -14,15 +14,19 @@ import { permissionsOf } from "@/lib/auth/session";
 import type { SessionUser } from "@/lib/auth/types";
 import { capFor, spentBy, type Cap } from "@/lib/db/cap";
 import { database } from "@/lib/db/client";
-import { finishRunRow, jobRow, markRunEmailed, startRunRow, takeDueJobs, type JobToRun } from "@/lib/db/jobs";
+import { finishRunRow, jobRow, markRunEmailed, startRunRow, takeDueJobs, watchSpecOf, type JobToRun } from "@/lib/db/jobs";
 import { users } from "@/lib/db/schema";
 import { recordUsage } from "@/lib/db/usage";
 import { escapeHtml, EMAIL_STYLE } from "@/lib/email/layout";
 import { markdownToEmailHtml, markdownToText } from "@/lib/email/markdown";
 import { linkFor, notify } from "@/lib/notifications/notify";
 import { spendingNow } from "@/lib/runs";
+import { nudgeMonitors } from "@/lib/watches/monitors";
+import { changesHtml, changesText, runWatch, toldLately, type WatchWorked } from "@/lib/watches/run";
+import { sayChange, type MonitorSignal } from "@/lib/watches/types";
 import type { Source } from "@/lib/widgets/types";
 import { sayWhen } from "./schedule";
+import type { RunTrigger } from "./types";
 
 /*
  * Running a job. A run is the agent working with nobody watching: it gets the job's
@@ -45,7 +49,7 @@ const MAX_AT_ONCE = 3;
 const TRIM_ABOVE_TOKENS = 120_000;
 
 /** Tools a run does not get: they wait for a person, or they change the user's jobs. */
-const NOT_IN_A_RUN = ["askUser", "requestLocation", "createJob", "updateJob", "deleteJob", "listJobs"] as const;
+const NOT_IN_A_RUN = ["askUser", "requestLocation", "createJob", "createWatch", "updateJob", "deleteJob", "listJobs"] as const;
 
 type Running = { runId: string; abort: AbortController; spent: () => number; userId: string };
 const holder = globalThis as typeof globalThis & { __kestrelJobRuns?: Map<string, Running> };
@@ -88,8 +92,23 @@ export type Started = { ok: true; runId: string } | { ok: false; status: number;
 export async function runNow(userId: string, jobId: string): Promise<Started> {
   const job = await jobRow(jobId).catch(() => null);
   if (!job || job.userId !== userId) return { ok: false, status: 404, problem: "That job does not exist." };
-  if (running.has(job.id)) return { ok: false, status: 409, problem: "This job is already running." };
+  if (running.has(job.id)) return { ok: false, status: 409, problem: job.kind === "watch" ? "It is already looking." : "This job is already running." };
   const runId = await begin(job, "manual");
+  // "Check now" on a watch also has its monitors look right away; what they find comes through the webhook.
+  const spec = watchSpecOf(job);
+  if (spec) nudgeMonitors(spec);
+  return { ok: true, runId };
+}
+
+/**
+ * A monitor called to say something changed: have the watch look now. Asked by the webhook, which
+ * has already checked that the call is genuine. A watch that is looking already is left to it.
+ */
+export async function runFromHook(job: JobToRun, incoming: MonitorSignal): Promise<Started> {
+  if (job.kind !== "watch") return { ok: false, status: 404, problem: "That is not a watch." };
+  if (job.status !== "active") return { ok: false, status: 409, problem: "The watch is paused." };
+  if (running.has(job.id)) return { ok: false, status: 409, problem: "It is already looking." };
+  const runId = await begin(job, "webhook", incoming);
   return { ok: true, runId };
 }
 
@@ -113,13 +132,13 @@ export function stopJobRun(jobId: string): boolean {
   return Boolean(entry);
 }
 
-async function begin(job: JobToRun, trigger: "schedule" | "manual"): Promise<string> {
+async function begin(job: JobToRun, trigger: RunTrigger, incoming?: MonitorSignal): Promise<string> {
   const runId = await startRunRow(job, trigger);
   const abort = new AbortController();
   const entry: Running = { runId, abort, spent: () => 0, userId: job.userId };
   running.set(job.id, entry);
   const limit = setTimeout(() => abort.abort(), RUN_LIMIT_MS);
-  void carryOut(job, runId, trigger, entry)
+  void carryOut(job, runId, trigger, entry, incoming)
     .catch((err) => console.error("[jobs] a run broke off", job.id, err))
     .finally(() => {
       clearTimeout(limit);
@@ -128,7 +147,7 @@ async function begin(job: JobToRun, trigger: "schedule" | "manual"): Promise<str
   return runId;
 }
 
-async function carryOut(job: JobToRun, runId: string, trigger: "schedule" | "manual", entry: Running): Promise<void> {
+async function carryOut(job: JobToRun, runId: string, trigger: RunTrigger, entry: Running, incoming?: MonitorSignal): Promise<void> {
   const link = { jobId: job.id, runId };
   const fail = async (status: "failed" | "skipped", reason: string, tell: boolean, extra: { output?: string; messages?: unknown[]; costUsd?: number } = {}) => {
     await finishRunRow(runId, { status, error: reason, ...extra });
@@ -142,6 +161,8 @@ async function carryOut(job: JobToRun, runId: string, trigger: "schedule" | "man
   if (!account || account.status !== "active") return fail("skipped", "The account is not active.", false);
   const cap = await capFor(account);
   if (cap.reached) return fail("skipped", "The account has reached its usage limit. Jobs run again once the limit is raised.", true);
+
+  if (job.kind === "watch") return carryOutWatch(job, runId, trigger, entry, account, incoming, fail);
 
   let done: Worked;
   try {
@@ -171,18 +192,116 @@ async function carryOut(job: JobToRun, runId: string, trigger: "schedule" | "man
     // The email is what a job is for: it goes out whether or not the user has Kestrel open.
     email: "always",
     page: {
-      label: trigger === "manual" ? "Job result · Run now" : "Job result",
+      label: trigger === "manual" ? "Result · Run now" : "Result",
       heading: job.title,
       lead: `${when} · ${job.scheduleText}`,
       bodyHtml: `${markdownToEmailHtml(output)}${done.problem ? `<p style="margin:16px 0 0;color:${EMAIL_STYLE.MUTED}">${escapeHtml(done.problem)}</p>` : ""}${sources}`,
       button: { label: "Open this run", href: linkFor(link) },
-      why: "You set this job up in Kestrel. You can pause, change or delete it on the Jobs page.",
+      why: "You set this job up in Kestrel. You can pause, change or delete it on the Watches page.",
       subject: `${job.title} · ${when}`,
       preview: markdownToText(output).replace(/\s+/g, " ").slice(0, 140),
       text: `${job.title}\n${when} · ${job.scheduleText}\n\n${markdownToText(output)}\n\n${linkFor(link)}`,
     },
   });
   if (told.emailed) await markRunEmailed(runId);
+}
+
+/**
+ * One look of a watch (lib/watches/run.ts), and what the user hears of it. A first look says what
+ * it found. A look that found something different says what changed, with the before, the after
+ * and the source, and that email goes out whether or not the user has Kestrel open. A look that
+ * found nothing new is kept as a quiet run: no notice, no email.
+ */
+async function carryOutWatch(
+  job: JobToRun,
+  runId: string,
+  trigger: RunTrigger,
+  entry: Running,
+  account: Account,
+  incoming: MonitorSignal | undefined,
+  fail: (status: "failed" | "skipped", reason: string, tell: boolean) => Promise<void>,
+): Promise<void> {
+  const link = { jobId: job.id, runId };
+  const spec = watchSpecOf(job);
+  if (!spec) return fail("failed", "This watch has nothing to look for.", true);
+
+  let done: WatchWorked;
+  try {
+    done = await runWatch(job, { runId, signal: entry.abort.signal, incoming, track: (spent) => (entry.spent = spent) }, account);
+  } catch (err) {
+    console.error("[watches] a look failed", job.id, err);
+    return fail("failed", friendlyLook(err), true);
+  }
+  const { record, output, summary, costUsd, snapshot } = done;
+  await finishRunRow(runId, { status: "done", output, costUsd, snapshot, changes: record });
+  // The look itself is over: "Check now" may be pressed again while the notice and the email go out.
+  if (running.get(job.id) === entry) running.delete(job.id);
+
+  const when = sayWhen(new Date(), job.timeZone);
+  const why = "You asked Kestrel to watch this. You can pause, change or delete it on the Watches page.";
+  if (record.baseline) {
+    const told = await notify({
+      userId: job.userId,
+      kind: "job_done",
+      title: `Now watching: ${job.title}`,
+      body: summary,
+      ...link,
+      dedupe: `run:${runId}`,
+      email: "always",
+      page: {
+        label: "Now watching",
+        heading: job.title,
+        lead: `${when} · ${job.scheduleText}`,
+        bodyHtml: `${markdownToEmailHtml(output)}<p style="margin:16px 0 0;color:${EMAIL_STYLE.MUTED}">From now on you hear from this watch only when something changes.</p>`,
+        button: { label: "Open this watch", href: linkFor({ jobId: job.id }) },
+        why,
+        subject: `Now watching: ${job.title}`,
+        preview: summary.slice(0, 140),
+        text: `Now watching: ${job.title}\n${when} · ${job.scheduleText}\n\n${markdownToText(output)}\n\n${linkFor({ jobId: job.id })}`,
+      },
+    });
+    if (told.emailed) await markRunEmailed(runId);
+    return;
+  }
+
+  // Nothing our own look can see differs. A monitor's call alone is worth telling only when the change has not just been told.
+  const monitorOnly = record.changes.length === 0 && Boolean(incoming?.summary);
+  if (record.changes.length === 0 && !(monitorOnly && !(await toldLately(job.id).catch(() => true)))) return;
+
+  const first = record.changes[0];
+  const headline = first ? (first.kind === "added" || first.kind === "removed" ? sayChange(first, spec) : `${sayChange(first, spec)}`) : "The page changed";
+  const extra = record.changes.length > 1 ? ` (+${record.changes.length - 1} more)` : "";
+  const told = await notify({
+    userId: job.userId,
+    kind: "watch_changed",
+    title: `${job.title}: ${headline}${extra}`.slice(0, 200),
+    body: summary,
+    ...link,
+    dedupe: `watch:${runId}`,
+    // Telling the user is what a watch is for: the email goes out whether or not Kestrel is open.
+    email: "always",
+    page: {
+      label: trigger === "webhook" ? "Something changed · spotted by a live monitor" : "Something changed",
+      heading: job.title,
+      lead: `${when}`,
+      bodyHtml: `<p style="margin:0">${escapeHtml(summary)}</p>${changesHtml(record, spec)}`,
+      button: { label: "See what changed", href: linkFor(link) },
+      why,
+      subject: `${job.title}: ${headline}${extra}`.slice(0, 160),
+      preview: summary.slice(0, 140),
+      text: `${job.title}\n${when}\n\n${summary}\n\n${changesText(record, spec)}\n\n${linkFor(link)}`,
+    },
+  });
+  if (told.emailed) await markRunEmailed(runId);
+}
+
+function friendlyLook(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/abort/i.test(message)) return "It was stopped before it finished.";
+  if (/rate limit|429/i.test(message)) return "The web data service was too busy. It looks again at its next time.";
+  if (/credit|402|billing/i.test(message)) return "The account behind this server has run out of credit.";
+  if (/not set|not wired|api key/i.test(message)) return "Looking things up is not set up on this server yet.";
+  return "Something went wrong while looking.";
 }
 
 type Worked = { output: string; messages: unknown[]; costUsd: number; sources: Source[]; problem?: string };

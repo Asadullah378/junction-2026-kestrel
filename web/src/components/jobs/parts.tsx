@@ -5,7 +5,7 @@ import { Check, CircleSlash, LoaderCircle, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { JobItem, JobRunStatus } from "@/lib/jobs/types";
 
-/* Small pieces the Jobs page uses in more than one place: the marks that say how a job or a run stands, and its buttons. */
+/* Small pieces the Watches page uses in more than one place: the marks that say how a job or a run stands, and its buttons. */
 
 /** Where one view of the page lives in the address: the list, a job, or one of a job's runs. */
 export type Place = { job?: string; run?: string };
@@ -15,7 +15,7 @@ export function hrefOf(place: Place): string {
   if (place.job) query.set("job", place.job);
   if (place.run) query.set("run", place.run);
   const text = query.toString();
-  return text ? `/jobs?${text}` : "/jobs";
+  return text ? `/watches?${text}` : "/watches";
 }
 
 /** A link inside the page: it changes the address without loading the page again, and still opens in a new tab when asked to. */
@@ -39,16 +39,16 @@ export function PlaceLink({ to, go, className, children, ...rest }: { to: Place;
 const PILL = "inline-flex h-[1.4rem] shrink-0 items-center gap-1.5 rounded-full px-2 text-[0.68rem] font-semibold tracking-wide whitespace-nowrap";
 
 /** How a job stands: running right now, active, paused, or finished (no run left). */
-export function JobStatusPill({ job, className }: { job: Pick<JobItem, "status" | "running">; className?: string }) {
+export function JobStatusPill({ job, className }: { job: Pick<JobItem, "status" | "running"> & { kind?: JobItem["kind"] }; className?: string }) {
   if (job.running) {
     return (
       <span className={cn(PILL, "bg-brand-soft text-brand", className)}>
         <span className="size-1.5 animate-pulse-dot rounded-full bg-brand" />
-        Running
+        {job.kind === "watch" ? "Looking" : "Running"}
       </span>
     );
   }
-  if (job.status === "active") return <span className={cn(PILL, "bg-brand-soft text-brand", className)}>Active</span>;
+  if (job.status === "active") return <span className={cn(PILL, "bg-brand-soft text-brand", className)}>{job.kind === "watch" ? "Watching" : "Active"}</span>;
   if (job.status === "paused") return <span className={cn(PILL, "bg-brass/15 text-brass", className)}>Paused</span>;
   return <span className={cn(PILL, "bg-muted text-muted-foreground", className)}>Finished</span>;
 }

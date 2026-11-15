@@ -19,7 +19,9 @@
     "test:guard": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/guard-test.mjs",
     "test:jobs": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/jobs-test.mjs",
     "test:notify": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/notify-test.mjs",
-    "icons": "electron scripts/make-icons.cjs"
+    "icons": "electron scripts/make-icons.cjs",
+    "test:diff": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/watch-diff-test.mjs",
+    "test:watch": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/watch-test.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.103",

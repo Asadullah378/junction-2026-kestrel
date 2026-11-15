@@ -23,7 +23,8 @@ export const COUNTRY_NAMES: Record<string, string> = {
   FI: "Finland", FR: "France", GB: "United Kingdom", IE: "Ireland", IT: "Italy", NL: "Netherlands", NO: "Norway", PL: "Poland",
   PT: "Portugal", SE: "Sweden", US: "United States",
 };
-const DEFAULT_COUNTRIES = ["FI", "SE", "DE", "NL", "FR", "ES", "IT"];
+/** Countries that share the euro, so their prices compare as they stand and one band of plausible prices serves them all. */
+const DEFAULT_COUNTRIES = ["FI", "DE", "NL", "FR", "ES", "IT", "AT"];
 const MAX_COUNTRIES = 8;
 
 export type CountryPrices = {
@@ -40,39 +41,48 @@ export type CountryPrices = {
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-/** An offer is the product when its title carries every word of the product's name, model numbers included. */
+/**
+ * An offer is the product when its title names the brand and carries the rest of the name in one
+ * piece: "Sony … WH-1000XM6", "Nintendo Switch 2". Words scattered through a title do not count,
+ * or "Nintendo Switch … Luigi's Mansion 2" would pass for a Switch 2.
+ */
 function isProduct(title: string, product: string): boolean {
   const have = norm(title);
-  return product
-    .split(/\s+/)
-    .map(norm)
-    .filter((t) => t.length >= 2)
-    .every((t) => have.includes(t));
+  const [brand, ...rest] = product.split(/\s+/).map(norm).filter(Boolean);
+  if (!brand) return false;
+  return have.includes(brand) && (rest.length === 0 || have.includes(rest.join("")));
 }
 
 /** Second-hand and "compatible with" offers are not the product at its price. Words for them in the languages of the countries looked in. */
-const NOT_NEW = /refurbish|renewed|reacondicionad|ricondizionat|reconditionn|gebraucht|wie neu|käytetty|begagnad|occasion|\bused\b|second ?hand|tweedehands|kompatib|compatib|yhteensopiva|ersatz|replacement|reservdel|varaosa/i;
+const NOT_NEW = /\busat[oa]\b|\busad[oa]\b|gebruikt|\bbrugt\b|\bgrade [a-d]\b|open(ed)?[ -]?box|geopende doos|b-?ware|outlet|demo ?(model|kappale)|skins?\b|wraps?\b|refurbish|renewed|reacondicionad|ricondizionat|reconditionn|gebraucht|wie neu|käytetty|begagnad|occasion|\bused\b|second ?hand|tweedehands|kompatib|compatib|yhteensopiva|ersatz|replacement|reservdel|varaosa/i;
 
 /** Shops and marketplaces that sell used goods or private listings: their prices are not a shop's price for a new one. */
 const SECOND_HAND = /segunda mano|second ?hand|\bused\b|usato|occasion|gebraucht|käytetty|begagnad|refurb|leboncoin|\bcex\b|wallapop|back ?market|rebuy|swappie|\bebay\b|vinted|marktplaats|kleinanzeigen|\btori\b|blocket|subito|tradera|huuto|ricardo|cash ?converters|realcash/i;
 
 /**
- * Cases, ear pads and spare parts carry the product's name too, and so does the odd listing with
- * a wild price. The product's own price is where most offers sit: take the densest stretch of
- * prices (lowest to 1.6 times lowest) and keep what lies in or just around it.
+ * Cases, ear pads and spare parts carry the product's name too, and for some products there are
+ * more of them than of the product itself. So does the odd listing with a wild price. The
+ * product's own price is where the money is: of every stretch of prices (lowest to 1.6 times
+ * lowest) take the one whose offers add up to the most, and keep what lies in or just around it.
+ * A lone offer cannot make a stretch when there are several to choose from, so one wild price
+ * does not win.
  */
 function priceBand(prices: number[]): { low: number; high: number } | null {
   if (prices.length === 0) return null;
   const sorted = [...prices].sort((a, b) => a - b);
-  let best = { start: 0, count: 0 };
+  const needs = sorted.length >= 4 ? 2 : 1;
+  let best: { low: number; sum: number } | null = null;
   for (let i = 0; i < sorted.length; i++) {
     let count = 0;
-    for (let j = i; j < sorted.length && sorted[j] <= sorted[i] * 1.6; j++) count += 1;
-    // Of two stretches with as many offers, the dearer one is the product and the cheaper its accessories.
-    if (count >= best.count) best = { start: i, count };
+    let sum = 0;
+    for (let j = i; j < sorted.length && sorted[j] <= sorted[i] * 1.6; j++) {
+      count += 1;
+      sum += sorted[j];
+    }
+    if (count >= needs && (!best || sum > best.sum)) best = { low: sorted[i], sum };
   }
-  const low = sorted[best.start];
-  return { low: low * 0.92, high: low * 1.75 };
+  if (!best) return null;
+  return { low: best.low * 0.8, high: best.low * 1.8 };
 }
 
 /** The cheapest offer for one product in each country, all countries asked at once. */
@@ -128,7 +138,7 @@ export function comparePricesTool(ctx: ToolContext) {
         .min(1)
         .max(MAX_COUNTRIES)
         .optional()
-        .describe("Two-letter country codes to look in. Default: the user's country and its European neighbours."),
+        .describe("Two-letter country codes to look in. Default: seven euro countries, the user's own among them when it uses the euro. Prices in another currency are shown but not ranked against the euro ones."),
       maxPrice: z.number().positive().optional().describe("Only offers at or under this price, in each country's own currency."),
     }),
     // Each `yield` replaces what the widget shows; the last value yielded is the tool's result.
@@ -172,7 +182,7 @@ export function comparePricesTool(ctx: ToolContext) {
           verdict: verdictFor(found, home, mainCurrency, missing, ms),
           sources,
           error: products.length === 0 ? `No shop offers for "${product}" were found in ${missing.join(", ")}. Check the model name, or try other countries.` : undefined,
-          watchSpec: products.length ? { what: product, wishes: [], queries: [], product, countries: wanted } : undefined,
+          watchSpec: products.length ? { what: product, wishes: [], queries: [], product, countries: wanted, fields: [{ key: "price", label: "Price", type: "number" as const }] } : undefined,
         };
       } catch (err) {
         yield { ...base, products: [], sources: [], error: errorMessage(err) };

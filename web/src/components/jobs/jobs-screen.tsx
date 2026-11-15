@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CalendarClock, MessageSquarePlus } from "lucide-react";
+import { CalendarClock, Eye, MessageSquarePlus, Radar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/brand";
 import { ago, elsewhere, fetchJobs, sayWhen, zoneName, type Answer } from "@/lib/jobs/client";
@@ -13,9 +13,9 @@ import { Bar, Card, JobStatusPill, PlaceLink, Problem, RUN_WORD, buttonClass, hr
 import { RunPane } from "./run-pane";
 
 /*
- * The Jobs page. Jobs are made in a chat; here the account sees them, opens one to read and
- * change what it does, pauses or deletes it, runs it once by hand, and reads what each run
- * produced.
+ * The Watches page. A watch is made from a result's "Watch this" button or in a chat; here the
+ * account sees what is being watched, opens one to see what it looks at and what each look
+ * found different, checks it now, pauses or deletes it. Plain scheduled jobs live here too.
  *
  * What is open lives in the address (?job=<id>, and &run=<id> for one run), so a link from an
  * email lands on the right run and Back steps out of it. Where there is room the list stays
@@ -94,9 +94,9 @@ export function JobsScreen() {
   return (
     <div>
       <div className={cn(opened && "hidden @min-[60rem]/jobs:block")}>
-        <h1 className="font-display text-[1.75rem] leading-[1.15] sm:text-[2.1rem]">Jobs</h1>
+        <h1 className="font-display text-[1.75rem] leading-[1.15] sm:text-[2.1rem]">Watches</h1>
         <p className="mt-1.5 max-w-[40rem] text-[0.9rem] text-muted-foreground">
-          Things {APP_NAME} does for you on a schedule. Each result is emailed to you and kept here.
+          What {APP_NAME} keeps an eye on for you. It looks again and again, and tells you only when something changed: what it was, what it is now, and where it saw it.
         </p>
       </div>
 
@@ -106,7 +106,7 @@ export function JobsScreen() {
         <NoJobs />
       ) : (
         <div className="@min-[60rem]/jobs:mt-6 @min-[60rem]/jobs:grid @min-[60rem]/jobs:grid-cols-[minmax(0,21.5rem)_minmax(0,1fr)] @min-[60rem]/jobs:items-start @min-[60rem]/jobs:gap-6">
-          <nav aria-label="Your jobs" className={cn("mt-6 @min-[60rem]/jobs:sticky @min-[60rem]/jobs:top-20 @min-[60rem]/jobs:mt-0", opened && "hidden @min-[60rem]/jobs:block")}>
+          <nav aria-label="Your watches" className={cn("mt-6 @min-[60rem]/jobs:sticky @min-[60rem]/jobs:top-20 @min-[60rem]/jobs:mt-0", opened && "hidden @min-[60rem]/jobs:block")}>
             {problem ? (
               <div className="mb-3">
                 <Problem onRetry={load}>{problem}</Problem>
@@ -120,7 +120,7 @@ export function JobsScreen() {
               ))}
             </ul>
             <p className="mt-4 px-1 text-[0.78rem] leading-snug text-subtle">
-              To add a job, ask in a chat. For example: &quot;Every weekday at 8, email me the top AI news.&quot;
+              To add one, press &quot;Watch this&quot; on a result, or ask in a chat. For example: &quot;Tell me when these headphones drop below 300 euros.&quot;
             </p>
           </nav>
 
@@ -131,9 +131,9 @@ export function JobsScreen() {
               <JobPane key={jobId} jobId={jobId} initial={selected} go={go} onJob={onJob} onDeleted={onDeleted} />
             ) : (
               <Card className="flex min-h-[16rem] flex-col items-center justify-center gap-2 text-center">
-                <CalendarClock className="size-6 text-subtle" />
-                <p className="text-[0.9rem] font-medium">Pick a job</p>
-                <p className="max-w-[24rem] text-[0.82rem] leading-snug text-muted-foreground">Open one to see what it does, change its instructions, run it now, or read what each run found.</p>
+                <Eye className="size-6 text-subtle" />
+                <p className="text-[0.9rem] font-medium">Pick a watch</p>
+                <p className="max-w-[24rem] text-[0.82rem] leading-snug text-muted-foreground">Open one to see what it looks at, check it now, or read what each look found different.</p>
               </Card>
             )}
           </div>
@@ -146,19 +146,31 @@ export function JobsScreen() {
 /** When the job runs next, in a few words. */
 function nextLine(job: JobItem): string {
   if (job.status === "paused") return "Paused";
-  if (job.status === "done" || !job.nextRunAt) return "No runs left";
-  return `Next: ${sayWhen(job.nextRunAt, job.timeZone)}${elsewhere(job.timeZone) ? ` (${zoneName(job.timeZone)})` : ""}`;
+  if (job.status === "done" || !job.nextRunAt) return job.kind === "watch" ? "No look ahead" : "No runs left";
+  return `${job.kind === "watch" ? "Looks next" : "Next"}: ${sayWhen(job.nextRunAt, job.timeZone)}${elsewhere(job.timeZone) ? ` (${zoneName(job.timeZone)})` : ""}`;
 }
 
 /** How the latest run went, in a few words. */
 function lastLine(job: JobItem): string {
-  if (!job.lastRun) return "Not run yet";
-  if (job.lastRun.status === "running") return "Running now";
-  return `Last run: ${RUN_WORD[job.lastRun.status].toLowerCase()}, ${ago(job.lastRun.startedAt)}`;
+  const last = job.lastRun;
+  if (job.kind === "watch") {
+    if (!last) return "Has not looked yet";
+    if (last.status === "running") return "Looking now";
+    if (last.status === "failed") return `Could not look, ${ago(last.startedAt)}`;
+    if (last.status === "skipped") return `Skipped, ${ago(last.startedAt)}`;
+    if (last.baseline) return `First look ${ago(last.startedAt)}`;
+    return last.changed ? `Changed ${ago(last.startedAt)}` : `Nothing new, ${ago(last.startedAt)}`;
+  }
+  if (!last) return "Not run yet";
+  if (last.status === "running") return "Running now";
+  return `Last run: ${RUN_WORD[last.status].toLowerCase()}, ${ago(last.startedAt)}`;
 }
 
 function JobRow({ job, active, go }: { job: JobItem; active: boolean; go: (place: Place) => void }) {
   const failed = job.lastRun?.status === "failed";
+  const watch = job.kind === "watch";
+  const changed = watch && job.lastRun?.status === "done" && !job.lastRun.baseline && (job.lastRun.changed ?? 0) > 0;
+  const live = watch && job.status === "active" && (job.watch?.monitors.length ?? 0) > 0;
   return (
     <PlaceLink
       to={{ job: job.id }}
@@ -170,33 +182,42 @@ function JobRow({ job, active, go }: { job: JobItem; active: boolean; go: (place
       )}
     >
       <span className="flex items-start gap-2">
+        {watch ? <Eye className="mt-0.5 size-4 shrink-0 text-subtle" aria-label="Watch" /> : <CalendarClock className="mt-0.5 size-4 shrink-0 text-subtle" aria-label="Scheduled job" />}
         <span className="min-w-0 flex-1 text-[0.92rem] leading-snug font-medium [overflow-wrap:anywhere]">{job.title}</span>
         <JobStatusPill job={job} className="mt-px" />
       </span>
-      <span className="mt-1 block truncate text-[0.82rem] text-muted-foreground">{job.scheduleText}</span>
+      <span className="mt-1 flex items-center gap-1.5 text-[0.82rem] text-muted-foreground">
+        <span className="truncate">{job.scheduleText}</span>
+        {live ? (
+          <span className="inline-flex shrink-0 items-center gap-1 text-[0.74rem] font-medium text-brand">
+            <Radar className="size-3.5" />
+            Live
+          </span>
+        ) : null}
+      </span>
       <span className="mt-2 flex flex-wrap gap-x-2 gap-y-0.5 text-[0.76rem] leading-snug text-subtle">
-        <span>{nextLine(job)}</span>
+        <span className={cn(failed && "text-destructive", changed && "font-medium text-brand")}>{lastLine(job)}</span>
         <span aria-hidden>·</span>
-        <span className={cn(failed && "text-destructive")}>{lastLine(job)}</span>
+        <span>{nextLine(job)}</span>
       </span>
     </PlaceLink>
   );
 }
 
-/** Nothing has been set up yet: say what a job is and how one is made. */
+/** Nothing has been set up yet: say what a watch is and how one is made. */
 function NoJobs() {
   return (
     <Card className="mx-auto mt-8 flex max-w-[34rem] flex-col items-center gap-2 px-6 py-10 text-center sm:py-12">
       <span className="mb-1 flex size-11 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-        <CalendarClock className="size-5" />
+        <Eye className="size-5" />
       </span>
-      <h2 className="text-[1.05rem] font-medium">No jobs yet</h2>
+      <h2 className="text-[1.05rem] font-medium">Nothing watched yet</h2>
       <p className="max-w-[26rem] text-[0.88rem] leading-relaxed text-muted-foreground">
-        A job is something {APP_NAME} looks up for you on a schedule and emails you. You set one up by asking in a chat.
+        A watch is something {APP_NAME} keeps looking at for you. It emails you only when something changes. Press &quot;Watch this&quot; on a result, or ask in a chat.
       </p>
       <p className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-left text-[0.86rem] leading-snug hairline">
         <span className="block text-[0.7rem] font-semibold tracking-wider text-subtle uppercase">Try asking</span>
-        <span className="mt-1 block">Every weekday at 8, email me the top AI news.</span>
+        <span className="mt-1 block">Tell me when these headphones drop below 300 euros in any EU shop.</span>
       </p>
       <Link href="/" className={cn(buttonClass.primary, "mt-4 px-4")}>
         <MessageSquarePlus />
@@ -208,7 +229,7 @@ function NoJobs() {
 
 function ListSkeleton() {
   return (
-    <div className="max-w-[21.5rem] space-y-2" aria-label="Loading your jobs" role="status">
+    <div className="max-w-[21.5rem] space-y-2" aria-label="Loading your watches" role="status">
       {[0, 1, 2].map((i) => (
         <div key={i} className="rounded-2xl border border-border bg-card/70 p-3.5">
           <Bar className="w-2/3" />

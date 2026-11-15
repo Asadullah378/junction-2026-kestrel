@@ -12,7 +12,7 @@ import { Logo } from "@/components/brand/logo";
 import { BrowserWorkspace } from "@/components/browser/workspace";
 
 /**
- * The frame of the Jobs page: the name, the way back to the chat, the theme and the account.
+ * The frame of the Watches page: the name, the way back to the chat, the theme and the account.
  *
  * In the desktop app a link pressed anywhere in the window opens in the app's live browser, and
  * a run is full of links to its sources. So there the page sits in the same workspace the chat
@@ -29,7 +29,7 @@ export function JobsShell({ inApp, children }: { inApp: boolean; children: React
             <Logo size={32} className="rounded-[0.6rem] shadow-card" />
             <span className="font-display text-[1.3rem] leading-none">{APP_NAME}</span>
           </Link>
-          <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[0.66rem] font-semibold tracking-wider text-brand uppercase">Jobs</span>
+          <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[0.66rem] font-semibold tracking-wider text-brand uppercase">Watches</span>
 
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <Link

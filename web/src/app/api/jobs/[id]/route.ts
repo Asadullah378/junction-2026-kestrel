@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth/server";
 import { deleteJob, getJob, listRuns, updateJob, type JobChange } from "@/lib/db/jobs";
 import { stopJobRun } from "@/lib/jobs/run";
+import { standDown, standUp } from "@/lib/watches/make";
 import type { JobDetail } from "@/lib/jobs/types";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +42,12 @@ export async function PATCH(req: Request, { params }: Params) {
   const result = await updateJob(user.id, id, change);
   if (!result) return Response.json({ error: "That job does not exist." }, { status: 404 });
   if (!result.ok) return Response.json({ error: result.problem }, { status: 409 });
-  // Pausing also stops a run that is going.
-  if (change.status === "paused") stopJobRun(id);
+  // Pausing also stops a run that is going, and takes a watch's live monitors down; resuming arms them again.
+  if (change.status === "paused") {
+    stopJobRun(id);
+    await standDown(id, true).catch(() => undefined);
+  }
+  if (change.status === "active") await standUp(id).catch(() => undefined);
   return Response.json({ job: result.job });
 }
 
@@ -52,7 +57,11 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (user instanceof Response) return user;
   const { id } = await params;
   // Only the account's own job: the delete below is asked by account, and so is this.
-  if (await getJob(user.id, id)) stopJobRun(id);
+  if (await getJob(user.id, id)) {
+    stopJobRun(id);
+    // A watch's monitors go with it, before the row that names them is gone.
+    await standDown(id, false).catch(() => undefined);
+  }
   const gone = await deleteJob(user.id, id);
   return gone ? Response.json({ deleted: true }) : Response.json({ error: "That job does not exist." }, { status: 404 });
 }

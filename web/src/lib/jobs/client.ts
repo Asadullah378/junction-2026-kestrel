@@ -47,6 +47,10 @@ export const removeJob = (id: string) => ask(`/api/jobs/${encodeURIComponent(id)
 /** "Run now": start one run right away. Answers with the new run's id as soon as it has started. */
 export const runJobNow = (id: string) => ask(`/api/jobs/${encodeURIComponent(id)}/run`, { method: "POST" }, (body) => (body as { runId: string }).runId);
 
+/** "Watch this": keep looking for what a card was looking for, and tell when something changes. Answers with the new watch. */
+export const watchThis = (input: { title: string; spec: unknown; description?: string; everyMinutes?: number }) =>
+  ask("/api/watches", { method: "POST", json: { ...input, timeZone: browserZone() } }, (body) => (body as { job: JobItem }).job);
+
 /** One run in full. */
 export const fetchRun = (runId: string) => ask(`/api/jobs/runs/${encodeURIComponent(runId)}`, { cache: "no-store" }, (body) => body as JobRunDetail);
 

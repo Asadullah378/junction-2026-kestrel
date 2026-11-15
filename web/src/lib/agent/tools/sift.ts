@@ -56,7 +56,7 @@ export type SiftSpec = {
   country?: string;
 };
 
-type Meters = { meter?: WebMeter & DecisionMeter; signal?: AbortSignal };
+type Meters = { meter?: WebMeter & DecisionMeter; signal?: AbortSignal; /** False skips the few-minute cache: a watch wants what is there now. */ cache?: boolean };
 
 /** The same page under two addresses counts once. */
 export const pageKey = (url: string) => url.replace(/#.*$/, "").replace(/\/$/, "").replace(/^https?:\/\/(www\.)?/, "");
@@ -110,7 +110,7 @@ export async function siftFind(spec: SiftSpec, opts: Meters = {}): Promise<SiftF
     spec.queries.map((query) =>
       liveSearch(
         { query, numResults: perQuery, includeDomains: spec.includeDomains, recency: spec.recency, country: spec.country, text: true, highlights: PASSAGE_CHARS, readBudgetMs: spec.thorough ? THOROUGH_READ_BUDGET_MS : READ_BUDGET_MS },
-        { meter: opts.meter, signal: opts.signal },
+        { meter: opts.meter, signal: opts.signal, cache: opts.cache },
       ),
     ),
   );

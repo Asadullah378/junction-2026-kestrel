@@ -23,7 +23,7 @@ export function AccountBadge({ user, className }: { user: Pick<SessionUser, "nam
 const PAGES = [
   { href: "/admin", label: "Usage", icon: ChartNoAxesCombined, admin: true },
   { href: "/admin/accounts", label: "Accounts", icon: Users, admin: true },
-  { href: "/jobs", label: "Jobs", icon: CalendarClock, admin: false },
+  { href: "/watches", label: "Watches", icon: CalendarClock, admin: false },
 ] as const;
 
 /** True when `pathname` is that page or one beneath it. "/admin" is only itself: the accounts page is its own entry. */

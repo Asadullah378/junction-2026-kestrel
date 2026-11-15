@@ -20,7 +20,7 @@ type Key = keyof NotifyPrefs;
 const KINDS: Array<{ key: Key; label: string; hint: string }> = [
   { key: "chats", label: "Chats I asked to hear about", hint: "When a long chat finishes and you chose to be told." },
   { key: "browser", label: "The browser needs me", hint: "When the desktop app waits for your approval, a sign-in or a code." },
-  { key: "jobs", label: "Job results", hint: "What a job found, each time it runs." },
+  { key: "jobs", label: "Watches and jobs", hint: "When a watch sees a change, and what a job found." },
 ];
 
 export function NotificationSettings({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {

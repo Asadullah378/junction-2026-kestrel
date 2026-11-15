@@ -21,14 +21,15 @@ const PUBLIC_PAGES = new Set(["/login", "/about"]);
  * the "page not found" page instead of being asked to sign in to see nothing. Each of these
  * pages also checks the session itself, so a page left off this list is still not open.
  */
-const PRIVATE_PAGES = /^\/(?:chat|jobs|admin|dev)(?:\/|$)/;
+const PRIVATE_PAGES = /^\/(?:chat|jobs|watches|admin|dev)(?:\/|$)/;
 /** A chat's id, as the server accepts it everywhere. */
 const CHAT_ID = /^[A-Za-z0-9_-]{6,80}$/;
 /** The page that was asked for, handed on to the app so a page that sends someone to sign in can send them back. */
 export const PATH_HEADER = "x-kestrel-path";
 /** The desktop app names itself in its window's User-Agent (desktop/main.cjs). */
 const DESKTOP_APP = /KestrelDesktop\//;
-const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/logout", "/api/health"]);
+/** The last one is where Context.dev calls when a watched page changes: nobody is signed in there, and the route checks the call's signature itself. */
+const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/logout", "/api/health", "/api/hooks/context"]);
 /** Icons, the web app manifest and the like: needed before anyone has signed in. */
 const PUBLIC_FILE = /^\/(?:favicon\.ico|icon(?:[-.\w]*)?|apple-icon(?:[-.\w]*)?|manifest\.(?:webmanifest|json)|sw\.js|robots\.txt)$|\.(?:png|svg|ico|webp|jpg|jpeg|woff2?)$/;
 
@@ -40,6 +41,8 @@ export function proxy(request: NextRequest) {
   if (pathname.startsWith("/download/")) return NextResponse.next();
   // The pretend shop the browser tests run against: a static page with nothing of anyone's in it.
   if (pathname === "/dev/sandbox.html") return NextResponse.next();
+  // The pretend shop a watch is shown reacting to: a public product page with made-up data.
+  if (pathname === "/dev/shop") return NextResponse.next();
   // The widget gallery and the browser panel preview are development tools.
   if (pathname.startsWith("/dev/") && process.env.NODE_ENV !== "production") return NextResponse.next();
 

@@ -176,7 +176,7 @@ async function openMeteo<T>(url: string, signal?: AbortSignal): Promise<T> {
   return (await res.json()) as T;
 }
 
-export function getWeatherTool(ctx: ToolContext) {
+export function getWeatherTool(_ctx: ToolContext) {
   return tool({
     description: "Get the weather forecast for a place (up to 14 days ahead) and show it as a forecast widget. Use it when weather affects a plan.",
     inputSchema: z.object({

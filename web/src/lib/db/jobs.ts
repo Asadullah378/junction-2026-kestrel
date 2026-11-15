@@ -1,7 +1,8 @@
 import "server-only";
 import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { describeSchedule, nextRun } from "@/lib/jobs/schedule";
-import { MAX_JOBS, type JobItem, type JobRunDetail, type JobRunItem, type JobRunStatus, type JobSchedule, type JobStatus } from "@/lib/jobs/types";
+import { MAX_JOBS, type JobItem, type JobKind, type JobRunDetail, type JobRunItem, type JobRunStatus, type JobSchedule, type JobStatus, type RunTrigger } from "@/lib/jobs/types";
+import { viewOf, type RunChanges, type Snapshot, type WatchSpec } from "@/lib/watches/types";
 import { database } from "./client";
 import { jsonForPostgres } from "./conversations";
 import { jobRuns, jobs, type JobRow, type JobRunRow } from "./schema";
@@ -29,9 +30,21 @@ const summaryOf = (output: string | null) =>
 
 const limitsOf = (row: Pick<JobRow, "createdAt" | "untilAt" | "maxRuns" | "runCount">) => ({ createdAt: row.createdAt, untilAt: row.untilAt, maxRuns: row.maxRuns, runCount: row.runCount });
 
-function toJob(row: JobRow, last?: { id: string; status: JobRunStatus; startedAt: Date }): JobItem {
+/** A watch's spec as stored, or null for a job (or a watch whose spec is not readable). */
+export function watchSpecOf(row: Pick<JobRow, "kind" | "watch">): WatchSpec | null {
+  if (row.kind !== "watch" || !row.watch || typeof row.watch !== "object") return null;
+  const spec = row.watch as Partial<WatchSpec>;
+  return { ...spec, what: spec.what ?? "", wishes: Array.isArray(spec.wishes) ? spec.wishes : [], queries: Array.isArray(spec.queries) ? spec.queries : [] } as WatchSpec;
+}
+
+type LastRun = { id: string; status: JobRunStatus; startedAt: Date; changes?: unknown };
+
+function toJob(row: JobRow, last?: LastRun): JobItem {
+  const spec = watchSpecOf(row);
   return {
     id: row.id,
+    kind: row.kind,
+    watch: spec ? viewOf(spec) : undefined,
     title: row.title,
     description: row.description,
     prompt: row.prompt,
@@ -49,16 +62,24 @@ function toJob(row: JobRow, last?: { id: string; status: JobRunStatus; startedAt
     createdAt: row.createdAt.getTime(),
     updatedAt: row.updatedAt.getTime(),
     running: last?.status === "running",
-    lastRun: last ? { id: last.id, status: last.status, startedAt: last.startedAt.getTime() } : undefined,
+    lastRun: last ? { id: last.id, status: last.status, startedAt: last.startedAt.getTime(), ...lookOf(last.changes) } : undefined,
   };
 }
 
-function toRun(row: Omit<JobRunRow, "messages">, showCost: boolean): JobRunItem {
+/** For a watch's latest look: whether it was the first, and how many changes it found. */
+function lookOf(changes: unknown): { baseline?: boolean; changed?: number } {
+  if (!changes || typeof changes !== "object") return {};
+  const record = changes as Partial<RunChanges>;
+  return { baseline: record.baseline === true, changed: (Array.isArray(record.changes) ? record.changes.length : 0) || (record.signal?.summary && !record.baseline ? 1 : 0) };
+}
+
+function toRun(row: Omit<JobRunRow, "messages" | "snapshot">, showCost: boolean): JobRunItem {
   return {
     id: row.id,
     jobId: row.jobId,
     trigger: row.trigger,
     status: row.status,
+    watch: row.changes && typeof row.changes === "object" ? (row.changes as RunChanges) : undefined,
     startedAt: row.startedAt.getTime(),
     finishedAt: row.finishedAt?.getTime(),
     error: row.error ?? undefined,
@@ -72,14 +93,14 @@ const mine = (userId: string, id: string) => and(eq(jobs.userId, userId), eq(job
 export const validJobId = (id: unknown): id is string => typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
 /** The latest run of each of these jobs. */
-async function latestRuns(jobIds: string[]): Promise<Map<string, { id: string; status: JobRunStatus; startedAt: Date }>> {
+async function latestRuns(jobIds: string[]): Promise<Map<string, LastRun>> {
   if (jobIds.length === 0) return new Map();
   const rows = await database()
-    .selectDistinctOn([jobRuns.jobId], { id: jobRuns.id, jobId: jobRuns.jobId, status: jobRuns.status, startedAt: jobRuns.startedAt })
+    .selectDistinctOn([jobRuns.jobId], { id: jobRuns.id, jobId: jobRuns.jobId, status: jobRuns.status, startedAt: jobRuns.startedAt, changes: jobRuns.changes })
     .from(jobRuns)
     .where(inArray(jobRuns.jobId, jobIds))
     .orderBy(jobRuns.jobId, desc(jobRuns.startedAt));
-  return new Map(rows.map((r) => [r.jobId, { id: r.id, status: r.status, startedAt: r.startedAt }]));
+  return new Map(rows.map((r) => [r.jobId, { id: r.id, status: r.status, startedAt: r.startedAt, changes: r.changes }]));
 }
 
 /** This account's jobs, newest first. */
@@ -97,6 +118,9 @@ export async function getJob(userId: string, id: string): Promise<JobItem | null
 }
 
 export type NewJob = {
+  /** "watch" needs `watch`; a job needs neither. */
+  kind?: JobKind;
+  watch?: WatchSpec;
   title: string;
   description: string;
   prompt: string;
@@ -119,7 +143,7 @@ export type Made = { ok: true; job: JobItem } | { ok: false; problem: string };
 export async function createJob(userId: string, input: NewJob): Promise<Made> {
   const db = database();
   const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(jobs).where(eq(jobs.userId, userId));
-  if ((count?.n ?? 0) >= MAX_JOBS) return { ok: false, problem: `This account already has ${MAX_JOBS} jobs, which is the most it can have. Delete one first.` };
+  if ((count?.n ?? 0) >= MAX_JOBS) return { ok: false, problem: `This account already has ${MAX_JOBS} watches and jobs, which is the most it can have. Delete one first.` };
   const now = new Date();
   const first = nextRun(input.schedule, input.timeZone, now, { createdAt: now, untilAt: input.untilAt, maxRuns: input.maxRuns, runCount: 0 });
   if (!first) return { ok: false, problem: "With that schedule and end, the job would never run. Check the times." };
@@ -127,7 +151,9 @@ export async function createJob(userId: string, input: NewJob): Promise<Made> {
     .insert(jobs)
     .values({
       userId,
-      title: clipText(input.title, 120) || "Job",
+      kind: input.kind ?? "job",
+      watch: input.kind === "watch" && input.watch ? input.watch : null,
+      title: clipText(input.title, 120) || (input.kind === "watch" ? "Watch" : "Job"),
       description: clipText(input.description, 600),
       prompt: clipText(input.prompt, 6000),
       schedule: input.schedule,
@@ -239,6 +265,7 @@ const runColumns = {
   error: jobRuns.error,
   costUsd: jobRuns.costUsd,
   emailedAt: jobRuns.emailedAt,
+  changes: jobRuns.changes,
 };
 
 /** A job's runs, newest first, without what each one produced. */
@@ -258,7 +285,12 @@ export async function getRun(userId: string, runId: string, showCost: boolean): 
   if (!validJobId(runId)) return null;
   const [row] = await database().select().from(jobRuns).where(and(eq(jobRuns.userId, userId), eq(jobRuns.id, runId))).limit(1);
   if (!row) return null;
-  return { ...toRun(row, showCost), output: row.output ?? undefined, messages: Array.isArray(row.messages) ? row.messages : [] };
+  return {
+    ...toRun(row, showCost),
+    output: row.output ?? undefined,
+    messages: Array.isArray(row.messages) ? row.messages : [],
+    snapshot: row.snapshot && typeof row.snapshot === "object" ? (row.snapshot as Snapshot) : undefined,
+  };
 }
 
 /* ───────── For the scheduler and the runner only ───────── */
@@ -298,13 +330,48 @@ export async function takeDueJobs(now: Date, limit: number): Promise<JobRow[]> {
   return taken;
 }
 
-export async function startRunRow(job: Pick<JobRow, "id" | "userId">, trigger: "schedule" | "manual"): Promise<string> {
+export async function startRunRow(job: Pick<JobRow, "id" | "userId">, trigger: RunTrigger): Promise<string> {
   const [row] = await database().insert(jobRuns).values({ jobId: job.id, userId: job.userId, trigger, status: "running" }).returning({ id: jobRuns.id });
-  if (trigger === "manual") await database().update(jobs).set({ lastRunAt: new Date() }).where(eq(jobs.id, job.id));
+  if (trigger !== "schedule") await database().update(jobs).set({ lastRunAt: new Date() }).where(eq(jobs.id, job.id));
   return row.id;
 }
 
-export async function finishRunRow(runId: string, result: { status: Exclude<JobRunStatus, "running">; output?: string; messages?: unknown[]; error?: string; costUsd?: number }): Promise<void> {
+/* ───────── For watches ───────── */
+
+/** Save a watch's spec again: its monitors were armed or taken down. */
+export async function saveWatchSpec(jobId: string, spec: WatchSpec): Promise<void> {
+  await database()
+    .update(jobs)
+    .set({ watch: sql`${jsonForPostgres(spec)}::jsonb`, updatedAt: new Date() })
+    .where(eq(jobs.id, jobId));
+}
+
+/** The watch one of whose monitors has this id. Asked by the webhook, across accounts. */
+export async function watchByMonitor(monitorId: string): Promise<JobRow | null> {
+  if (!monitorId || monitorId.length > 200) return null;
+  const [row] = await database()
+    .select()
+    .from(jobs)
+    .where(and(eq(jobs.kind, "watch"), sql`${jobs.watch} -> 'monitors' @> ${JSON.stringify([{ id: monitorId }])}::jsonb`))
+    .limit(1);
+  return row ?? null;
+}
+
+/** What the watch found the last time a look finished, to compare the new look with. Null on the first look. */
+export async function previousSnapshot(jobId: string, notRunId: string): Promise<Snapshot | null> {
+  const [row] = await database()
+    .select({ snapshot: jobRuns.snapshot })
+    .from(jobRuns)
+    .where(and(eq(jobRuns.jobId, jobId), eq(jobRuns.status, "done"), sql`${jobRuns.snapshot} is not null`, sql`${jobRuns.id} <> ${notRunId}`))
+    .orderBy(desc(jobRuns.startedAt))
+    .limit(1);
+  return row?.snapshot && typeof row.snapshot === "object" ? (row.snapshot as Snapshot) : null;
+}
+
+export async function finishRunRow(
+  runId: string,
+  result: { status: Exclude<JobRunStatus, "running">; output?: string; messages?: unknown[]; error?: string; costUsd?: number; snapshot?: Snapshot; changes?: RunChanges },
+): Promise<void> {
   await database()
     .update(jobRuns)
     .set({
@@ -314,6 +381,8 @@ export async function finishRunRow(runId: string, result: { status: Exclude<JobR
       messages: sql`${jsonForPostgres(result.messages ?? [])}::jsonb`,
       error: result.error?.slice(0, 400) ?? null,
       costUsd: result.costUsd ?? 0,
+      ...(result.snapshot ? { snapshot: sql`${jsonForPostgres(result.snapshot)}::jsonb` } : {}),
+      ...(result.changes ? { changes: sql`${jsonForPostgres(result.changes)}::jsonb` } : {}),
     })
     .where(eq(jobRuns.id, runId));
 }

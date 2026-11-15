@@ -7,6 +7,7 @@ const MONDAY = Date.UTC(2026, 10, 16, 6, 0);
 
 const news: JobItem = {
   id: "0b7c1f0e-5a51-4c0e-9a39-6f3f1a2b4c5d",
+  kind: "job",
   title: "Morning AI news",
   description: "The five AI stories worth knowing about each weekday morning, with one line on why each matters.",
   prompt: "Search for AI news from the last 24 hours. Pick the five stories that matter most to someone who builds with AI: model releases, pricing changes, research with results, regulation. Skip opinion pieces and funding rounds under 100 million. For each: a headline, one line on why it matters, and the source. If fewer than five are worth it, send fewer.",

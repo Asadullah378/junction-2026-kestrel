@@ -16,10 +16,16 @@ export type JobSchedule =
   | { kind: "cron"; cron: string };
 
 export type JobStatus = "active" | "paused" | "done";
+/** "job": the agent follows instructions and writes a result. "watch": it looks again and tells only what changed (lib/watches). */
+export type JobKind = "job" | "watch";
+export type RunTrigger = "schedule" | "manual" | "webhook";
 export type JobRunStatus = "running" | "done" | "failed" | "skipped";
 
 export type JobItem = {
   id: string;
+  kind: JobKind;
+  /** For a watch: what it looks for, without its secrets. */
+  watch?: import("@/lib/watches/types").WatchView;
   title: string;
   /** What the user wants, in a sentence or two. */
   description: string;
@@ -46,15 +52,17 @@ export type JobItem = {
   /** A run of this job is in progress right now. */
   running: boolean;
   /** How the latest run went, if there has been one. */
-  lastRun?: { id: string; status: JobRunStatus; startedAt: number };
+  lastRun?: { id: string; status: JobRunStatus; startedAt: number; /** For a watch: it was the first look. */ baseline?: boolean; /** For a watch: how many changes that look found. */ changed?: number };
 };
 
 export type JobRunItem = {
   id: string;
   jobId: string;
-  /** "schedule": its time came. "manual": someone pressed Run now. */
-  trigger: "schedule" | "manual";
+  /** "schedule": its time came. "manual": someone pressed Run now or Check now. "webhook": a monitor called to say a page changed. */
+  trigger: RunTrigger;
   status: JobRunStatus;
+  /** For a run of a watch: what was different from the look before. Absent for a job's run. */
+  watch?: import("@/lib/watches/types").RunChanges;
   startedAt: number;
   finishedAt?: number;
   /** Why it failed or was skipped. */
@@ -68,7 +76,7 @@ export type JobRunItem = {
 };
 
 /** One run in full: what the agent wrote (Markdown) and the run as a chat would show it. */
-export type JobRunDetail = JobRunItem & { output?: string; messages: unknown[] };
+export type JobRunDetail = JobRunItem & { output?: string; messages: unknown[]; snapshot?: import("@/lib/watches/types").Snapshot };
 
 /** What the routes under /api/jobs answer. */
 export type JobList = { jobs: JobItem[] };

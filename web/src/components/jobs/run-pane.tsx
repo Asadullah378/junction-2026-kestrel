@@ -11,6 +11,7 @@ import { Markdown } from "@/components/butler/markdown";
 import { AssistantMessage, WorkingLine } from "@/components/butler/message";
 import type { WidgetHandlers } from "@/components/butler/tool-part";
 import { Bar, Card, PlaceLink, Problem, RunStatusPill, buttonClass, type Place } from "./parts";
+import { ChangeList, SnapshotList, lookChanged, lookWord, triggerWord } from "./watch-parts";
 
 /*
  * One run of a job, opened: when it ran, how it went, and what it produced, shown the way a chat
@@ -75,7 +76,7 @@ export function RunPane({
   const backLink = (
     <PlaceLink to={back} go={go} className="-ml-1 inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-2 text-[0.82rem] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
       <ArrowLeft className="size-4 shrink-0" />
-      <span className="truncate">{job ? job.title : back.job ? "Back to the job" : "All jobs"}</span>
+      <span className="truncate">{job ? job.title : back.job ? "Back" : "All watches"}</span>
     </PlaceLink>
   );
 
@@ -86,7 +87,7 @@ export function RunPane({
         <p className="text-[0.85rem] text-muted-foreground">Its job was deleted, or it belongs to another account.</p>
         <PlaceLink to={{}} go={go} className={buttonClass.plain}>
           <ArrowLeft />
-          All jobs
+          All watches
         </PlaceLink>
       </Card>
     );
@@ -111,6 +112,10 @@ export function RunPane({
   const timeZone = job?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const answers = (run.messages as ButlerMessage[]).filter((message) => message?.role === "assistant" && Array.isArray(message.parts) && message.parts.length > 0);
   const stopped = run.status === "failed" || run.status === "skipped";
+  const look = run.watch;
+  const changed = lookChanged(run);
+  // What the look wrote first is its one or two sentences; the lists under it are shown in full below.
+  const said = (run.output ?? "").split(/\n\s*\n/)[0]?.trim() ?? "";
 
   return (
     <div className="space-y-4">
@@ -118,14 +123,22 @@ export function RunPane({
 
       <Card>
         <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
-          <h2 className="min-w-0 flex-1 basis-[14rem] font-display text-[1.25rem] leading-tight sm:text-[1.4rem]">Run on {sayWhen(run.startedAt, timeZone)}</h2>
-          <RunStatusPill status={run.status} />
+          <h2 className="min-w-0 flex-1 basis-[14rem] font-display text-[1.25rem] leading-tight sm:text-[1.4rem]">
+            {look ? "Look" : "Run"} on {sayWhen(run.startedAt, timeZone)}
+          </h2>
+          {look && run.status === "done" ? (
+            <span className={`inline-flex h-[1.4rem] shrink-0 items-center rounded-full px-2 text-[0.68rem] font-semibold tracking-wide whitespace-nowrap ${changed || look.baseline ? "bg-brand-soft text-brand" : "bg-muted text-muted-foreground"}`}>{lookWord(run)}</span>
+          ) : (
+            <RunStatusPill status={run.status} />
+          )}
         </div>
         {/* No dots between these: on a narrow screen they wrap, and a dot left at the end of a line reads as a mistake. */}
         <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.82rem] text-muted-foreground">
-          <span>{run.trigger === "manual" ? "Started with Run now" : "Scheduled"}</span>
+          <span>{look ? (run.trigger === "webhook" ? "Started by a live monitor that saw a change" : run.trigger === "manual" ? "Started with Check now" : triggerWord(run.trigger, true)) : run.trigger === "manual" ? "Started with Run now" : "Scheduled"}</span>
           {run.finishedAt && run.status === "done" ? <span>Took {took(run.finishedAt - run.startedAt)}</span> : null}
-          {run.status === "done" ? (
+          {look && run.status === "done" && !changed && !look.baseline ? (
+            <span>No email: nothing changed</span>
+          ) : run.status === "done" ? (
             <span className="inline-flex items-center gap-1">
               {run.emailed ? <Mail className="size-3.5" /> : <MailX className="size-3.5" />}
               {run.emailed ? "Emailed to you" : "Not emailed"}
@@ -147,9 +160,42 @@ export function RunPane({
 
       {run.status === "running" ? (
         <Card>
-          <WorkingLine label="Working on it" />
+          <WorkingLine label={look || job?.kind === "watch" ? "Looking" : "Working on it"} />
           <p className="mt-1 text-[0.84rem] text-muted-foreground">The result shows here when it&apos;s done. You can leave this page: it carries on.</p>
         </Card>
+      ) : look ? (
+        <>
+          <Card aria-labelledby="look-changes">
+            <h3 id="look-changes" className="text-[0.78rem] font-semibold tracking-wider text-subtle uppercase">
+              {look.baseline ? "The first look" : changed ? "What changed" : "Nothing new"}
+            </h3>
+            {stopped ? null : (
+              <p className="mt-2 text-[0.92rem] leading-relaxed [overflow-wrap:anywhere]">
+                {look.baseline || changed ? said : "Nothing was different from the look before, so no email was sent."}
+              </p>
+            )}
+            {changed ? (
+              <div className="mt-2">
+                <ChangeList record={look} spec={job?.watch} />
+              </div>
+            ) : null}
+          </Card>
+          {run.snapshot ? (
+            <Card aria-labelledby="look-found">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                <h3 id="look-found" className="text-[0.78rem] font-semibold tracking-wider text-subtle uppercase">
+                  What it found this time
+                </h3>
+                <span className="text-[0.76rem] text-subtle">
+                  {run.snapshot.items.length === 1 ? "1 result" : `${run.snapshot.items.length} results`}
+                  {run.snapshot.timings?.searchMs ? ` · found in ${(run.snapshot.timings.searchMs / 1000).toFixed(1)} s` : ""}
+                  {run.snapshot.timings?.judgeMs ? ` · checked in ${(run.snapshot.timings.judgeMs / 1000).toFixed(1)} s` : ""}
+                </span>
+              </div>
+              <SnapshotList snapshot={run.snapshot} spec={job?.watch} />
+            </Card>
+          ) : null}
+        </>
       ) : answers.length > 0 ? (
         <Card className="px-4 py-5 sm:px-6 sm:py-6">
           <div className="mx-auto flex w-full max-w-[760px] flex-col gap-7">

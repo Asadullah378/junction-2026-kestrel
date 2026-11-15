@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { ArrowUpRight, Check, ChevronDown, ListFilter, TriangleAlert, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SIFT_SURE, type SiftData, type SiftItem, type SiftVerdict, type WidgetProps } from "@/lib/widgets/types";
+import { WatchThis } from "@/components/jobs/watch-this";
 import { Favicon, formatDate, Shimmer, WidgetError, WidgetFrame } from "./frame";
 
 /*
@@ -90,8 +91,12 @@ export function Sift({ data, loading }: WidgetProps<SiftData>) {
 
   const aside =
     judged && !data.error ? (
-      <span className={cn("nums inline-flex h-7 items-center rounded-full px-2.5 text-[0.75rem] font-medium", fits > 0 ? "bg-brand-soft text-brand" : "bg-muted text-muted-foreground")}>
-        {fits > 0 ? `${fits} ${fits === 1 ? "fits" : "fit"}` : "None fit all"}
+      <span className="flex items-center gap-1.5">
+        {/* Keep looking for the same thing, and tell me when something changes. */}
+        {data.watchSpec && !loading ? <WatchThis title={data.title} spec={data.watchSpec} /> : null}
+        <span className={cn("nums inline-flex h-7 items-center rounded-full px-2.5 text-[0.75rem] font-medium whitespace-nowrap", fits > 0 ? "bg-brand-soft text-brand" : "bg-muted text-muted-foreground")}>
+          {fits > 0 ? `${fits} ${fits === 1 ? "fits" : "fit"}` : "None fit all"}
+        </span>
       </span>
     ) : null;
 

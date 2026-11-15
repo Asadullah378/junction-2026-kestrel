@@ -180,6 +180,14 @@ export const jobs = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * "job": the agent follows the instructions and writes a result each time. "watch": plain code
+     * looks the same things up, compares with last time and tells the user only when something
+     * changed (src/lib/watches).
+     */
+    kind: text("kind", { enum: ["job", "watch"] }).notNull().default("job"),
+    /** For a watch: what it looks for and where, and the monitors that call when a page changes (WatchSpec). */
+    watch: jsonb("watch"),
     title: text("title").notNull(),
     /** What the user wants, in a sentence or two. */
     description: text("description").notNull(),
@@ -217,6 +225,7 @@ export const jobs = pgTable(
     index("jobs_user_idx").on(t.userId, t.createdAt.desc()),
     index("jobs_due_idx").on(t.status, t.nextRunAt),
     check("jobs_status_check", sql`${t.status} in ('active', 'paused', 'done')`),
+    check("jobs_kind_check", sql`${t.kind} in ('job', 'watch')`),
     check("jobs_max_runs_check", sql`${t.maxRuns} is null or ${t.maxRuns} > 0`),
   ],
 );
@@ -232,8 +241,8 @@ export const jobRuns = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    /** "schedule": its time came. "manual": someone pressed Run now. */
-    trigger: text("trigger", { enum: ["schedule", "manual"] }).notNull().default("schedule"),
+    /** "schedule": its time came. "manual": someone pressed Run now. "webhook": a monitor called to say a page changed. */
+    trigger: text("trigger", { enum: ["schedule", "manual", "webhook"] }).notNull().default("schedule"),
     /** "skipped": it did not run, and `error` says why (the usage limit, a blocked account). */
     status: text("status", { enum: ["running", "done", "failed", "skipped"] }).notNull().default("running"),
     startedAt: at("started_at").notNull().defaultNow(),
@@ -247,10 +256,14 @@ export const jobRuns = pgTable(
     costUsd: doublePrecision("cost_usd").notNull().default(0),
     /** When the result was emailed. Null when it was not (emails off, or nothing to send). */
     emailedAt: at("emailed_at"),
+    /** For a watch: what this look found (Snapshot), kept so the next look has something to compare with. */
+    snapshot: jsonb("snapshot"),
+    /** For a watch: what was different from the look before (RunChanges). */
+    changes: jsonb("changes"),
   },
   (t) => [
     index("job_runs_job_idx").on(t.jobId, t.startedAt.desc()),
-    check("job_runs_trigger_check", sql`${t.trigger} in ('schedule', 'manual')`),
+    check("job_runs_trigger_check", sql`${t.trigger} in ('schedule', 'manual', 'webhook')`),
     check("job_runs_status_check", sql`${t.status} in ('running', 'done', 'failed', 'skipped')`),
   ],
 );
@@ -267,7 +280,7 @@ export const notifications = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    kind: text("kind", { enum: ["chat_done", "needs_you", "job_done", "job_failed"] }).notNull(),
+    kind: text("kind", { enum: ["chat_done", "needs_you", "job_done", "job_failed", "watch_changed"] }).notNull(),
     title: text("title").notNull(),
     body: text("body").notNull().default(""),
     /** What it is about, so a click opens it. */
@@ -285,7 +298,7 @@ export const notifications = pgTable(
   (t) => [
     index("notifications_user_idx").on(t.userId, t.createdAt.desc()),
     uniqueIndex("notifications_dedupe_unique").on(t.userId, t.dedupe),
-    check("notifications_kind_check", sql`${t.kind} in ('chat_done', 'needs_you', 'job_done', 'job_failed')`),
+    check("notifications_kind_check", sql`${t.kind} in ('chat_done', 'needs_you', 'job_done', 'job_failed', 'watch_changed')`),
   ],
 );
 

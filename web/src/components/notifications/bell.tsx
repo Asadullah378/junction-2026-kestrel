@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CalendarCheck, CalendarX, CircleCheck, Hand, Settings2 } from "lucide-react";
+import { Bell, CalendarCheck, CalendarX, CircleCheck, Hand, Radar, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clearNotifications, markNotificationsRead, useNotifications } from "@/lib/notifications/client";
 import type { NotificationItem, NotifyKind } from "@/lib/notifications/types";
@@ -11,7 +11,7 @@ import { NotificationSettings } from "./settings";
 
 /*
  * The bell: what the account has been told, newest first. A chat it asked to hear about has
- * finished, the live browser is waiting for it, a job has run. A press on a notice opens what
+ * finished, a watch saw a change, a job has run. A press on a notice opens what
  * it is about and marks it read.
  */
 
@@ -20,6 +20,7 @@ const ICONS: Record<NotifyKind, React.ComponentType<{ className?: string }>> = {
   needs_you: Hand,
   job_done: CalendarCheck,
   job_failed: CalendarX,
+  watch_changed: Radar,
 };
 
 /** "5 min ago", for a list that is looked at now and then. */
@@ -44,7 +45,7 @@ export function useOpenNotification(onOpenChat?: (conversationId: string) => voi
   return React.useCallback(
     (item: NotificationItem) => {
       void markNotificationsRead([item.id]);
-      if (item.jobId) router.push(`/jobs?job=${encodeURIComponent(item.jobId)}${item.runId ? `&run=${encodeURIComponent(item.runId)}` : ""}`);
+      if (item.jobId) router.push(`/watches?job=${encodeURIComponent(item.jobId)}${item.runId ? `&run=${encodeURIComponent(item.runId)}` : ""}`);
       else if (item.conversationId) {
         if (onOpenChat) onOpenChat(item.conversationId);
         else router.push(`/chat/${encodeURIComponent(item.conversationId)}`);

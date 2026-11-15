@@ -6,12 +6,15 @@ import { createJob, deleteJob, getJob, listJobs, updateJob, type JobChange } fro
 import { checkSchedule, momentOf, sayWhen, upcoming, validTimeZone } from "@/lib/jobs/schedule";
 import { stopJobRun } from "@/lib/jobs/run";
 import type { JobItem } from "@/lib/jobs/types";
+import { makeWatch, standDown, standUp } from "@/lib/watches/make";
+import { WATCH_MIN_MINUTES } from "@/lib/watches/types";
 import type { JobCardData } from "@/lib/widgets/types";
 import type { ToolContext } from "./context";
 
 /*
- * The agent's hold on the user's jobs: make one from what they asked for, see what they have,
- * change one (its schedule included) and delete one. These run on the server for the account
+ * The agent's hold on the user's watches and jobs: make one from what they asked for, see what
+ * they have, change one (its schedule included) and delete one. A watch keeps looking at the same
+ * thing and tells the user only when it changes; a job does a piece of work at set times. These run on the server for the account
  * that is signed in, and never touch anyone else's. A job itself only looks things up and
  * writes; what it may do is decided where it runs (lib/jobs/run.ts), not here.
  */
@@ -33,6 +36,10 @@ const zoneOf = (ctx: ToolContext) => (validTimeZone(ctx.timeZone) ? ctx.timeZone
 
 /** One job as the model reads it. */
 function line(job: JobItem): string {
+  if (job.kind === "watch") {
+    const looks = job.status === "active" && job.nextRunAt ? `looks next ${sayWhen(new Date(job.nextRunAt), job.timeZone)}` : job.status === "paused" ? "paused" : "stopped";
+    return `- id ${job.id}: watch "${job.title}". ${job.scheduleText}; ${looks}. ${job.description}`;
+  }
   const next = job.status === "active" && job.nextRunAt ? `next run ${sayWhen(new Date(job.nextRunAt), job.timeZone)}` : job.status === "paused" ? "paused" : "no run left";
   const end = job.untilAt ? `, until ${sayWhen(new Date(job.untilAt), job.timeZone)}` : job.maxRuns ? `, ${job.maxRuns} runs in all` : "";
   return `- id ${job.id}: "${job.title}". ${job.scheduleText}${end} (${job.timeZone}); ${next}. For: ${job.description}`;
@@ -53,9 +60,10 @@ const sayRuns = (job: JobItem, runs: number[]) => (runs.length ? runs.map((at) =
 export function createJobTool(ctx: ToolContext) {
   return tool({
     description:
-      "Set up a job: something you will do by yourself at set times, with the result emailed to the user and kept on their Jobs page. Use it when the user asks for anything on a schedule or at a later time " +
+      "Set up a job: something you will do by yourself at set times, with the result emailed to the user every time and kept on their Watches page. Use it when the user asks for a piece of work on a schedule or at a later time " +
       '("every weekday at 8 send me the AI news", "check this price every 6 hours until Friday", "tomorrow at 9 email me the weather"). ' +
-      "A job can search, read pages, look up prices, weather, flights and markets, and research; it cannot act on websites, sign in, book or buy, so do not make one for that. " +
+      "When what they want is to hear only when something changes (a price, a page, new results that fit), use createWatch instead. " +
+      "A job can search, read pages, look up prices, weather and markets, and research; it cannot act on websites, sign in, book or buy, so do not make one for that. " +
       "A run starts from nothing but the instructions you write here, so put in everything it needs.",
     inputSchema: z.object({
       title: z.string().min(2).max(80).describe('A short name: "Morning AI news", "RTX 5090 price watch".'),
@@ -103,15 +111,74 @@ export function createJobTool(ctx: ToolContext) {
       type: "text",
       value: output.job
         ? `The job is set up and shown to the user as a card.\n${line(output.job)}\nIts next runs: ${sayRuns(output.job, output.nextRuns ?? [])}.\n` +
-          "Say in one or two sentences what it will do and when it runs first, and that the result comes by email and is kept on the Jobs page. Do not repeat the card. Do not do the job's work now unless the user asked for a first result right away."
+          "Say in one or two sentences what it will do and when it runs first, and that the result comes by email and is kept on the Watches page. Do not repeat the card. Do not do the job's work now unless the user asked for a first result right away."
         : `The job was NOT made. ${output.error ?? ""} Fix it and call createJob again, or tell the user what is in the way.`,
+    }),
+  });
+}
+
+export function createWatchTool(ctx: ToolContext) {
+  return tool({
+    description:
+      "Set up a watch: Kestrel keeps looking at the same thing, compares each look with the one before, and tells the user only when something is different, with the before, the after and the source. " +
+      'Use it when the user asks to be told when something changes, to keep an eye on something, or to watch a price, a page or new results ("tell me when this drops below 300", "watch this pricing page", "let me know when a new junior job in Helsinki appears", "keep watching for these"). ' +
+      "Give it what to look at: `queries` for things found by searching (each result is checked against `wishes`), `urls` for pages the user named (with `fields` for the values to watch on them, such as price and inStock), `product` with `countries` for the price of one item across countries. " +
+      "It looks on a schedule and, for pinned pages and searches, live monitors make it look as soon as a change is seen. It cannot act on websites. For a piece of work at set times whose result should come every time, use createJob instead.",
+    inputSchema: z.object({
+      title: z.string().min(2).max(80).describe('A short name: "Headphones under 300", "Junior jobs in Helsinki", "Supplier pricing page".'),
+      description: z.string().min(5).max(400).describe("What the user wants to hear about, in a sentence, in their words."),
+      what: z.string().max(200).optional().describe('What one result is, singular: "a job ad", "a recipe", "the product page of these headphones".'),
+      wishes: z
+        .array(z.object({ label: z.string().min(1).max(40).describe('Two or three words: "Under 300 euros".'), test: z.string().min(3).max(240).describe('The statement each result is checked against: "the price is under 300 euros".') }))
+        .max(6)
+        .optional()
+        .describe("The conditions a result must meet. Leave out for a page that is watched for any change in its fields."),
+      queries: z.array(z.string().min(2).max(300)).max(3).optional().describe("One to three searches that find the results. Leave out when only pinned pages are watched."),
+      urls: z.array(z.string().url()).max(3).optional().describe("Pages the user named, watched directly."),
+      fields: z
+        .array(z.object({ key: z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,30}$/).describe('A short key: "price", "inStock".'), label: z.string().min(1).max(40).describe('How to say it: "Price", "In stock".'), type: z.enum(["number", "string", "boolean"]) }))
+        .max(6)
+        .optional()
+        .describe("The values to read from each pinned page and compare between looks. A price is a number; in stock is a boolean."),
+      product: z.string().max(160).optional().describe("For a price watch across shops and countries: the exact product, brand and model."),
+      countries: z.array(z.string().length(2)).max(8).optional().describe('For a price watch: two-letter country codes to compare, such as "FI", "DE", "SE".'),
+      everyMinutes: z.number().int().min(WATCH_MIN_MINUTES).max(10080).optional().describe(`How far apart the looks are, in minutes. At least ${WATCH_MIN_MINUTES}; 60 when the user gave no pace.`),
+    }),
+    execute: async (input): Promise<JobCardData> => {
+      if (!ctx.userId) return card({ action: "refused", error: "Watches are not available here." });
+      const made = await makeWatch(
+        { id: ctx.userId, modes: [ctx.mode] },
+        {
+          title: input.title,
+          description: input.description,
+          spec: { what: input.what ?? "", wishes: input.wishes ?? [], queries: input.queries ?? [], urls: input.urls, fields: input.fields, product: input.product, countries: input.countries },
+          everyMinutes: input.everyMinutes,
+          timeZone: zoneOf(ctx),
+          mode: ctx.mode,
+          effort: ctx.effort,
+          place: ctx.place,
+          country: ctx.country,
+          coords: ctx.coords,
+          conversationId: ctx.conversationId,
+        },
+      );
+      if (!made.ok) return card({ action: "refused", error: made.problem });
+      return card({ action: "created", job: made.job, nextRuns: nextRuns(made.job) });
+    },
+    toModelOutput: ({ output }) => ({
+      type: "text",
+      value: output.job
+        ? `The watch is set up and shown to the user as a card. Its first look has started and will say what it found.\n${line(output.job)}\n` +
+          `${output.job.watch?.monitors.length ? `${output.job.watch.monitors.length} live monitor${output.job.watch.monitors.length === 1 ? " is" : "s are"} armed, so a change is seen without waiting for the schedule.` : (output.job.watch?.monitorNote ?? "")}\n` +
+          "Say in one or two sentences what it watches, how often it looks, and that they will hear from it only when something changes, by email and on the Watches page. Do not repeat the card."
+        : `The watch was NOT made. ${output.error ?? ""} Fix it and call createWatch again, or tell the user what is in the way.`,
     }),
   });
 }
 
 export function listJobsTool(ctx: ToolContext) {
   return tool({
-    description: "See the user's jobs: what each is for, when it runs and whether it is active. Call it before changing or deleting a job you did not make in this chat, and when the user asks what they have scheduled.",
+    description: "See the user's watches and jobs: what each is for, when it runs and whether it is active. Call it before changing or deleting a job you did not make in this chat, and when the user asks what they have scheduled.",
     inputSchema: z.object({}),
     execute: async (): Promise<JobCardData> => {
       if (!ctx.userId) return card({ action: "refused", error: "Jobs are not available here." });
@@ -122,8 +189,8 @@ export function listJobsTool(ctx: ToolContext) {
       value: output.error
         ? output.error
         : output.jobs?.length
-          ? `The user has ${output.jobs.length} job${output.jobs.length === 1 ? "" : "s"}, shown to them as a list:\n${output.jobs.map(line).join("\n")}\nDo not read the list back: answer what they asked.`
-          : "The user has no jobs yet.",
+          ? `The user has ${output.jobs.length} watch${output.jobs.length === 1 ? "" : "es"} and job${output.jobs.length === 1 ? "" : "s"} in all, shown to them as a list:\n${output.jobs.map(line).join("\n")}\nDo not read the list back: answer what they asked.`
+          : "The user has no watches or jobs yet.",
     }),
   });
 }
@@ -173,7 +240,11 @@ export function updateJobTool(ctx: ToolContext) {
       const saved = await updateJob(ctx.userId, input.id, change);
       if (!saved) return card({ action: "refused", error: "There is no job with that id." });
       if (!saved.ok) return card({ action: "refused", error: saved.problem });
-      if (input.paused) stopJobRun(saved.job.id);
+      if (input.paused) {
+        stopJobRun(saved.job.id);
+        await standDown(saved.job.id, true).catch(() => undefined);
+      }
+      if (input.paused === false) await standUp(saved.job.id).catch(() => undefined);
       return card({ action: "updated", job: saved.job, nextRuns: nextRuns(saved.job) });
     },
     toModelOutput: ({ output }) => ({
@@ -194,6 +265,7 @@ export function deleteJobTool(ctx: ToolContext) {
       const job = await getJob(ctx.userId, input.id);
       if (!job) return card({ action: "refused", error: "There is no job with that id. Call listJobs to see the user's jobs." });
       stopJobRun(job.id);
+      await standDown(job.id, false).catch(() => undefined);
       await deleteJob(ctx.userId, job.id);
       return card({ action: "deleted", job });
     },

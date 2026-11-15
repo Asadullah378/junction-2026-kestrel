@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, CalendarClock, ChevronRight, LoaderCircle, Mail, Pause, Pencil, Play, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarClock, ChevronRight, Eye, LoaderCircle, Mail, Pause, Pencil, Play, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/brand";
@@ -11,6 +11,7 @@ import type { JobDetail, JobItem, JobRunItem } from "@/lib/jobs/types";
 import { ModeIcon } from "@/components/butler/mode-icon";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Bar, Card, JobStatusPill, PlaceLink, Problem, RunMark, RUN_WORD, buttonClass, type Place } from "./parts";
+import { ChangeList, WatchPulse, WatchSpecFacts, lookChanged, lookWord, triggerWord } from "./watch-parts";
 
 /*
  * One job, opened: what it is called, when it runs, what it is for and what each run is told to
@@ -78,11 +79,11 @@ export function JobPane({
   if (gone) {
     return (
       <Card className="flex flex-col items-start gap-3">
-        <p className="text-[0.92rem] font-medium">This job is no longer here</p>
+        <p className="text-[0.92rem] font-medium">This is no longer here</p>
         <p className="text-[0.85rem] text-muted-foreground">It was deleted, or it belongs to another account.</p>
         <PlaceLink to={{}} go={go} className={buttonClass.plain}>
           <ArrowLeft />
-          All jobs
+          All watches
         </PlaceLink>
       </Card>
     );
@@ -91,7 +92,7 @@ export function JobPane({
     return problem ? (
       <Problem onRetry={load}>{problem}</Problem>
     ) : (
-      <Card role="status" aria-label="Loading the job">
+      <Card role="status" aria-label="Loading">
         <Bar className="h-5 w-1/2" />
         <Bar className="mt-4 w-3/4" />
         <Bar className="mt-2.5 w-2/3" />
@@ -121,7 +122,7 @@ export function JobPane({
     const running = { ...job, running: true, lastRun: { id: started.id, status: "running" as const, startedAt: started.startedAt } };
     setJob(running);
     onJob(running);
-    toast("Running now", { description: "The result shows here when it's done, and goes to your inbox." });
+    toast(job.kind === "watch" ? "Looking now" : "Running now", { description: job.kind === "watch" ? "What it finds shows here. You get an email only if something changed." : "The result shows here when it's done, and goes to your inbox." });
   };
 
   const setStatus = async (status: "active" | "paused") => {
@@ -145,18 +146,19 @@ export function JobPane({
       return;
     }
     setConfirming(false);
-    toast("Job deleted");
+    toast(job.kind === "watch" ? "Watch deleted" : "Job deleted");
     onDeleted(job.id);
   };
 
   const mode = getMode(job.mode);
   const effort = getEffort(cleanEffort(job.effort));
+  const isWatch = job.kind === "watch";
 
   return (
     <div className="space-y-4">
       <PlaceLink to={{}} go={go} className="-ml-1 inline-flex h-8 items-center gap-1.5 rounded-full px-2 text-[0.82rem] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground @min-[60rem]/jobs:hidden">
         <ArrowLeft className="size-4" />
-        All jobs
+        All watches
       </PlaceLink>
 
       <Card>
@@ -169,8 +171,8 @@ export function JobPane({
 
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" onClick={() => void runNow()} disabled={busy !== null || job.running} className={buttonClass.primary}>
-            {busy === "run" || job.running ? <LoaderCircle className="animate-spin" /> : <Play />}
-            {job.running ? "Running" : "Run now"}
+            {busy === "run" || job.running ? <LoaderCircle className="animate-spin" /> : isWatch ? <RefreshCw /> : <Play />}
+            {isWatch ? (job.running ? "Looking" : "Check now") : job.running ? "Running" : "Run now"}
           </button>
           {job.status === "active" ? (
             <button type="button" onClick={() => void setStatus("paused")} disabled={busy !== null} className={buttonClass.plain}>
@@ -190,7 +192,24 @@ export function JobPane({
         </div>
       </Card>
 
-      <Card aria-labelledby="job-when">
+      {isWatch ? (
+        <Card aria-labelledby="watch-how">
+          <h3 id="watch-how" className="flex items-center gap-2 text-[0.78rem] font-semibold tracking-wider text-subtle uppercase">
+            <Eye className="size-3.5" />
+            How it watches
+          </h3>
+          <p className="mt-2 text-[1.05rem] leading-snug font-medium [overflow-wrap:anywhere]">{job.scheduleText}</p>
+          <WatchPulse job={job} />
+          {elsewhere(job.timeZone) ? (
+            <p className="mt-2 text-[0.8rem] text-subtle">
+              Times are in {zoneName(job.timeZone)} ({job.timeZone}).
+            </p>
+          ) : null}
+          <p className="mt-3 border-t border-border/70 pt-3 text-[0.8rem] text-subtle">To change how often it looks, ask in a chat.</p>
+        </Card>
+      ) : null}
+
+      <Card aria-labelledby="job-when" className={cn(isWatch && "hidden")}>
         <h3 id="job-when" className="flex items-center gap-2 text-[0.78rem] font-semibold tracking-wider text-subtle uppercase">
           <CalendarClock className="size-3.5" />
           When it runs
@@ -220,24 +239,37 @@ export function JobPane({
         <TextField label={"What it's for"} value={job.description} empty="No description." rows={3} onSave={(description) => save({ description })} />
       </Card>
 
-      <Card>
-        <TextField
-          label="Instructions"
-          hint={`What each run is told to do. ${APP_NAME} wrote this when the job was made.`}
-          value={job.prompt}
-          empty="No instructions."
-          rows={9}
-          required
-          onSave={(prompt) => save({ prompt })}
-        />
-      </Card>
+      {isWatch && job.watch ? (
+        <Card aria-labelledby="watch-what">
+          <h3 id="watch-what" className="text-[0.78rem] font-semibold tracking-wider text-subtle uppercase">
+            What it watches
+          </h3>
+          <WatchSpecFacts watch={job.watch} />
+        </Card>
+      ) : (
+        <Card>
+          <TextField
+            label="Instructions"
+            hint={`What each run is told to do. ${APP_NAME} wrote this when the job was made.`}
+            value={job.prompt}
+            empty="No instructions."
+            rows={9}
+            required
+            onSave={(prompt) => save({ prompt })}
+          />
+        </Card>
+      )}
 
       <Card aria-labelledby="job-runs">
         <div className="flex items-center justify-between gap-3">
           <h3 id="job-runs" className="text-[0.78rem] font-semibold tracking-wider text-subtle uppercase">
-            Runs
+            {isWatch ? "Timeline" : "Runs"}
           </h3>
-          {runs && runs.length > 0 ? <span className="text-[0.76rem] text-subtle">{runs.length === 1 ? "1 run" : `${runs.length} runs`}, newest first</span> : null}
+          {runs && runs.length > 0 ? (
+            <span className="text-[0.76rem] text-subtle">
+              {isWatch ? (runs.length === 1 ? "1 look" : `${runs.length} looks`) : runs.length === 1 ? "1 run" : `${runs.length} runs`}, newest first
+            </span>
+          ) : null}
         </div>
         {problem ? (
           <div className="mt-3">
@@ -251,13 +283,13 @@ export function JobPane({
           </div>
         ) : runs.length === 0 ? (
           <p className="mt-3 rounded-xl border border-dashed border-border bg-surface/50 px-4 py-6 text-center text-[0.84rem] leading-snug text-muted-foreground">
-            It has not run yet. Press Run now to try it.
+            {isWatch ? "It has not looked yet. Press Check now to have it look." : "It has not run yet. Press Run now to try it."}
           </p>
         ) : (
           <ul className="mt-2 divide-y divide-border/70">
             {runs.map((run) => (
               <li key={run.id}>
-                <RunRow run={run} timeZone={job.timeZone} go={go} />
+                <RunRow run={run} timeZone={job.timeZone} go={go} job={job} />
               </li>
             ))}
           </ul>
@@ -267,9 +299,9 @@ export function JobPane({
       <Dialog open={confirming} onOpenChange={(open) => (busy === "delete" ? undefined : setConfirming(open))}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-display text-[1.2rem]">Delete this job?</DialogTitle>
+            <DialogTitle className="font-display text-[1.2rem]">{isWatch ? "Delete this watch?" : "Delete this job?"}</DialogTitle>
             <DialogDescription>
-              &quot;{job.title}&quot; will stop running, and {runs && runs.length > 0 ? (runs.length === 1 ? "its one saved run" : `its ${runs.length} saved runs`) : "anything it has saved"} will be deleted with it. This cannot be undone.
+              &quot;{job.title}&quot; will stop {isWatch ? "looking" : "running"}, and {runs && runs.length > 0 ? (runs.length === 1 ? (isWatch ? "its one saved look" : "its one saved run") : `its ${runs.length} saved ${isWatch ? "looks" : "runs"}`) : "anything it has saved"} will be deleted with it. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -278,7 +310,7 @@ export function JobPane({
             </button>
             <button type="button" onClick={() => void remove()} disabled={busy === "delete"} className={buttonClass.danger}>
               {busy === "delete" ? <LoaderCircle className="animate-spin" /> : null}
-              Delete job
+              {isWatch ? "Delete watch" : "Delete job"}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -305,7 +337,8 @@ function endText(job: JobItem): string | null {
   return job.status === "done" ? null : "Keeps going until you pause or delete it.";
 }
 
-function RunRow({ run, timeZone, go }: { run: JobRunItem; timeZone: string; go: (place: Place) => void }) {
+function RunRow({ run, timeZone, go, job }: { run: JobRunItem; timeZone: string; go: (place: Place) => void; job: JobItem }) {
+  if (job.kind === "watch") return <LookRow run={run} timeZone={timeZone} go={go} job={job} />;
   const note = run.status === "failed" || run.status === "skipped" ? run.error || (run.status === "failed" ? "It did not finish." : "It did not run.") : run.status === "running" ? "Working on it." : run.summary || "No text in the result.";
   return (
     <PlaceLink
@@ -336,6 +369,59 @@ function RunRow({ run, timeZone, go }: { run: JobRunItem; timeZone: string; go: 
       </span>
       <ChevronRight className="mt-1 size-4 shrink-0 text-subtle transition-transform group-hover/run:translate-x-0.5" />
     </PlaceLink>
+  );
+}
+
+/**
+ * One look of a watch in the timeline. A look that found a change shows it right here: what it
+ * was, what it is now, and a link to the page. The links sit outside the row's own link, so each
+ * can be pressed by itself.
+ */
+function LookRow({ run, timeZone, go, job }: { run: JobRunItem; timeZone: string; go: (place: Place) => void; job: JobItem }) {
+  const changed = lookChanged(run);
+  const failed = run.status === "failed" || run.status === "skipped";
+  const note = failed
+    ? run.error || "It could not look."
+    : run.status === "running"
+      ? "Looking."
+      : changed
+        ? run.summary
+        : run.watch?.baseline
+          ? run.summary || "The first look: what it found is what the next look is compared with."
+          : "Nothing was different from the look before.";
+  return (
+    <div className="py-1">
+      <PlaceLink
+        to={{ job: run.jobId, run: run.id }}
+        go={go}
+        className="group/run -mx-2 flex items-start gap-3 rounded-xl px-2 py-2.5 transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/40"
+      >
+        <RunMark status={run.status} className={cn("mt-0.5", !changed && run.status === "done" && !run.watch?.baseline && "bg-muted text-muted-foreground")} />
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.86rem]">
+            <span className={cn("font-medium", changed && "text-brand")}>{lookWord(run)}</span>
+            <span className="text-muted-foreground">{sayWhen(run.startedAt, timeZone)}</span>
+            <span className="text-subtle">{triggerWord(run.trigger, true)}</span>
+          </span>
+          <span className={cn("mt-0.5 line-clamp-2 text-[0.82rem] leading-snug text-muted-foreground [overflow-wrap:anywhere]", run.status === "failed" && "text-destructive/90")}>{note}</span>
+          <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[0.74rem] text-subtle">
+            {run.emailed ? (
+              <span className="inline-flex items-center gap-1">
+                <Mail className="size-3" />
+                Emailed
+              </span>
+            ) : null}
+            {run.costUsd !== undefined && (run.status === "done" || run.status === "failed") ? <span>{usd(run.costUsd)}</span> : null}
+          </span>
+        </span>
+        <ChevronRight className="mt-1 size-4 shrink-0 text-subtle transition-transform group-hover/run:translate-x-0.5" />
+      </PlaceLink>
+      {changed && run.watch ? (
+        <div className="mb-1.5 ml-9">
+          <ChangeList record={run.watch} spec={job.watch} max={3} />
+        </div>
+      ) : null}
+    </div>
   );
 }
 
