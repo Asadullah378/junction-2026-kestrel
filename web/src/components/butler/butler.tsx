@@ -196,7 +196,7 @@ const BROWSER_BUSY = {
 };
 
 const browserTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
-const ACTIVE_KEY = "hovi.active";
+const ACTIVE_KEY = "kestrel.active";
 
 /*
  * A chat has its own address, /chat/<id>, and the front door (/) is a new chat. The address is
@@ -265,7 +265,7 @@ let browserHolder: string | null = null;
  * list can mark them after the app has been closed and opened. After a day they are forgotten:
  * a task that old is no longer picked up by itself.
  */
-const BROWSER_TASKS_KEY = "hovi.browserTasks";
+const BROWSER_TASKS_KEY = "kestrel.browserTasks";
 const BROWSER_TASK_LIFE_MS = 24 * 60 * 60 * 1000;
 /** In progress now, in this window. */
 const browserTasks = new Map<string, number>();
@@ -330,7 +330,7 @@ function noteBrowserTask(id: string, on: boolean) {
 }
 
 /* Whether the conversation list is closed only because it stepped aside for the live browser. */
-const ASIDE_KEY = "hovi.sidebar.aside";
+const ASIDE_KEY = "kestrel.sidebar.aside";
 function noteAside(on: boolean) {
   try {
     if (on) window.localStorage.setItem(ASIDE_KEY, "1");
@@ -353,7 +353,7 @@ type HandoverHandler = (answer: HandoverAnswer, toolCallId?: string) => void;
 export function Butler() {
   const conversations = useConversations();
   const wide = useMediaQuery("(min-width: 768px)");
-  const [sidebarPref, setSidebarPref] = useStored("hovi.sidebar", "open");
+  const [sidebarPref, setSidebarPref] = useStored("kestrel.sidebar", "open");
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const sidebarOpen = wide ? sidebarPref === "open" : drawerOpen;
 
@@ -713,12 +713,12 @@ function ChatView({
   startedIn?: ClientKind;
 }) {
   const user = useUser();
-  const [storedMode, setStoredMode] = useStored("hovi.mode", "");
-  const [storedEffort, setStoredEffort] = useStored("hovi.effort", String(DEFAULT_EFFORT));
+  const [storedMode, setStoredMode] = useStored("kestrel.mode", "");
+  const [storedEffort, setStoredEffort] = useStored("kestrel.effort", String(DEFAULT_EFFORT));
   // The mode chosen last, if the account still has it; otherwise the best it has, up to Smart.
   const mode = pickMode(storedMode || "smart", user.modes);
   const effort = cleanEffort(storedEffort);
-  const [place, setPlace] = useStored("hovi.place", "");
+  const [place, setPlace] = useStored("kestrel.place", "");
   const timeZone = useClientValue(browserTimeZone, "Europe/Helsinki");
   const { location, declined, save: saveLocation, setDeclined } = useExactLocation();
   const approximatePlace = place || defaultPlace(timeZone);

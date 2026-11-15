@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { LOGO } from "@/lib/brand";
 
 /**
- * The mark: a cut beryl seen from above, on the brand tile. It follows the theme (dark emerald
+ * The mark: a cut kestrel seen from above, on the brand tile. It follows the theme (dark emerald
  * with an ivory stone in light mode, the reverse in dark mode). Decorative by default: pass `title` where
  * it stands alone, without the name beside it.
  */

@@ -1,18 +1,18 @@
-# Beryl
+# Kestrel
 
-**Your internet butler.** Ask for anything. Beryl searches the live web with Exa, answers with something you can use, and in the desktop app it gets the job done in a real browser while you watch.
+**Your internet butler.** Ask for anything. Kestrel searches the live web with Exa, answers with something you can use, and in the desktop app it gets the job done in a real browser while you watch.
 
 Built at Junction 2026 (13 to 15 November, Espoo) for Exa's challenge, "The Internet Butler".
 
-- Live at [beryl.zeroanomaly.tech](https://beryl.zeroanomaly.tech). Accounts are by invitation for now.
+- Live at [kestrel.zeroanomaly.tech](https://kestrel.zeroanomaly.tech). Accounts are by invitation for now.
 - On the web, as a desktop app for Mac and Windows, and on a phone.
 
 ## What it does
 
 - **Ask for anything.** Answers arrive as live cards, not a page of links: stock prices, places on a map with opening hours, flights, weather, product comparisons, images. Every card shows its sources.
 - **Sift.** For "find me the ones that…" questions. Exa returns about 100 pages with their text, and Gemini's Decisions API checks every page against every wish in one request. You get a grid of yes, no, or "the page does not say". In our test it checked 100 pages against four wishes and answered in about nine seconds.
-- **Research.** A team of sub-agents searches in parallel and Beryl writes one report with its sources.
-- **The live browser.** In the desktop app Beryl opens a real browser and works the site itself: it clicks, types and fills forms. You can take over at any moment.
+- **Research.** A team of sub-agents searches in parallel and Kestrel writes one report with its sources.
+- **The live browser.** In the desktop app Kestrel opens a real browser and works the site itself: it clicks, types and fills forms. You can take over at any moment.
 - **Voice.** A live call that listens, searches and answers out loud while the cards arrive on screen.
 - **Jobs.** "Every weekday at 8, email me the three biggest AI stories." It runs on schedule and emails you the result.
 - **Modes and cost.** You pick a mode and an effort, never a model. Every answer shows what it used and what it cost.
@@ -28,7 +28,7 @@ The rules are in code, not left to the model.
 
 ## What it runs on
 
-- **Exa** is how Beryl sees the web: search with page text and highlights, place records and market pages.
+- **Exa** is how Kestrel sees the web: search with page text and highlights, place records and market pages.
 - **Gemini** does three jobs. Gemini 4 Hydrogen and Gemini 4 Carbon run the agent in two of the four modes, Gemini 3.8 Live runs voice, and the Gemini Decisions API runs Sift.
 - **Claude** Sonnet 5.5 and Opus 5.5 run the other two modes.
 - Next.js, React and Postgres, with one server for the web and the desktop app. The desktop app is Electron.

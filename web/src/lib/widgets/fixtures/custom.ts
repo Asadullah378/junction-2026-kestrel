@@ -247,11 +247,11 @@ const TIP_CALCULATOR = `
     b.addEventListener("click", function () { $("tip").value = b.getAttribute("data-tip"); calc(); });
   });
   $("ask").addEventListener("click", function () {
-    hovi.ask("Which restaurants in Helsinki already include service in their prices?");
+    kestrel.ask("Which restaurants in Helsinki already include service in their prices?");
   });
   $("copy").addEventListener("click", function () {
     var r = calc();
-    hovi.copy("Dinner: " + eur.format(r.total) + " in total, " + eur.format(r.each) + " each for " + r.people + " people.");
+    kestrel.copy("Dinner: " + eur.format(r.total) + " in total, " + eur.format(r.each) + " each for " + r.people + " people.");
   });
   calc();
 </script>

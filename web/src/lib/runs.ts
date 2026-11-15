@@ -54,8 +54,8 @@ type Ended = { at: number; messages: unknown[] };
 type Registry = { runs: Map<string, Run>; ended: Map<string, Ended> };
 
 // One registry per process, kept across code reloads in development.
-const holder = globalThis as typeof globalThis & { __berylRuns?: Registry };
-const registry: Registry = (holder.__berylRuns ??= { runs: new Map(), ended: new Map() });
+const holder = globalThis as typeof globalThis & { __kestrelRuns?: Registry };
+const registry: Registry = (holder.__kestrelRuns ??= { runs: new Map(), ended: new Map() });
 
 const keyOf = (userId: string, conversationId: string) => `${userId}\n${conversationId}`;
 

@@ -48,7 +48,7 @@ export async function chatEnded(input: { userId: string; conversationId: string;
         await notify({
           userId: input.userId,
           kind: "needs_you",
-          title: "Beryl has a question for you",
+          title: "Kestrel has a question for you",
           body: clip(question.input?.title ?? question.input?.question ?? question.input?.questions?.[0]?.question ?? "It needs your answer to carry on.", 220),
           conversationId: input.conversationId,
           dedupe: `ask:${question.toolCallId ?? last.id ?? ""}`,

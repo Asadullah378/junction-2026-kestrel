@@ -37,8 +37,8 @@ function hashPassword(password) {
   return ["scrypt", 32768, 8, 1, salt.toString("base64url"), key.toString("base64url")].join("$");
 }
 const ACCOUNTS = [
-  { email: "delivered+beryl-notify-test@resend.dev", name: "Notify Test", password: crypto.randomBytes(18).toString("base64url") },
-  { email: "delivered+beryl-notify-other@resend.dev", name: "Notify Other", password: crypto.randomBytes(18).toString("base64url") },
+  { email: "delivered+kestrel-notify-test@resend.dev", name: "Notify Test", password: crypto.randomBytes(18).toString("base64url") },
+  { email: "delivered+kestrel-notify-other@resend.dev", name: "Notify Other", password: crypto.randomBytes(18).toString("base64url") },
 ];
 const drop = async () => { for (const account of ACCOUNTS) await db`delete from users where email = ${account.email} and role = 'user'`; };
 const create = async () => {
@@ -51,7 +51,7 @@ const signIn = async (email, password) => {
   const res = await fetch(`${base}/api/auth/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password }) });
   const cookie = (res.headers.get("set-cookie") ?? "").split(";")[0];
   if (!cookie) throw new Error(`could not sign in (${res.status})`);
-  return (p, init = {}) => fetch(`${base}${p}`, { ...init, headers: { "content-type": "application/json", cookie, "x-beryl-client": "web", ...(init.headers ?? {}) } });
+  return (p, init = {}) => fetch(`${base}${p}`, { ...init, headers: { "content-type": "application/json", cookie, "x-kestrel-client": "web", ...(init.headers ?? {}) } });
 };
 
 await create();

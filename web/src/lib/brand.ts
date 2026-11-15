@@ -1,19 +1,19 @@
 /**
- * The name. Beryl is a gemstone: emerald and aquamarine are both beryl, and its crystals grow as
+ * The name. Kestrel is a gemstone: emerald and aquamarine are both kestrel, and its crystals grow as
  * six-sided columns. Clear, hard and many-faceted is what the agent should be: it shows its
  * sources, holds to its rules and turns one request into many sides of an answer.
  * Change it here and it changes everywhere in the interface and in the agent's instructions.
  *
- * Not renamed, on purpose: the storage keys in the browser ("hovi.*") keep the first working
- * title, so people's saved settings survive. It was Hovi, then Baton (until 14 Nov).
+ * Not renamed, on purpose: the storage keys in the browser ("kestrel.*") keep the first working
+ * title, so people's saved settings survive. It was Kestrel, then Baton (until 14 Nov).
  */
-export const APP_NAME = "Beryl";
+export const APP_NAME = "Kestrel";
 export const APP_TAGLINE = "Your internet butler";
 export const APP_DESCRIPTION =
-  "Tell Beryl what you need. It searches the live web, shows you the answer, and can finish the job in a browser while you watch.";
+  "Tell Kestrel what you need. It searches the live web, shows you the answer, and can finish the job in a browser while you watch.";
 
 /**
- * The logo: a cut beryl seen from above. Beryl crystals are six-sided, so the stone is a hexagon:
+ * The logo: a cut kestrel seen from above. Kestrel crystals are six-sided, so the stone is a hexagon:
  * a flat table in the middle and six facets round it, lit from the upper left. The two facets
  * that face the light are brightest, the two that face away are darkest.
  *

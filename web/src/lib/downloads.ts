@@ -23,9 +23,9 @@ export type Download = {
 };
 
 export const DOWNLOADS: Download[] = [
-  { id: "mac-arm64", os: "mac", label: "Download for Mac", detail: "Apple silicon", requires: "macOS 13 or later, M1 chip or newer", file: "Beryl-mac-apple-silicon.dmg" },
-  { id: "mac-x64", os: "mac", label: "Download for Mac", detail: "Intel", requires: "macOS 13 or later, Intel processor", file: "Beryl-mac-intel.dmg" },
-  { id: "windows-x64", os: "windows", label: "Download for Windows", detail: "Windows 10 and 11", requires: "Windows 10 or 11, 64-bit", file: "Beryl-windows.zip" },
+  { id: "mac-arm64", os: "mac", label: "Download for Mac", detail: "Apple silicon", requires: "macOS 13 or later, M1 chip or newer", file: "Kestrel-mac-apple-silicon.dmg" },
+  { id: "mac-x64", os: "mac", label: "Download for Mac", detail: "Intel", requires: "macOS 13 or later, Intel processor", file: "Kestrel-mac-intel.dmg" },
+  { id: "windows-x64", os: "windows", label: "Download for Windows", detail: "Windows 10 and 11", requires: "Windows 10 or 11, 64-bit", file: "Kestrel-windows.zip" },
 ];
 
 export const downloadHref = (id: DownloadId) => `/download/${id}`;
@@ -64,21 +64,21 @@ export type FirstLaunch = {
 export const FIRST_LAUNCH: Record<"mac" | "windows", FirstLaunch> = {
   mac: {
     os: "mac",
-    why: "Beryl is not yet registered with Apple, so your Mac asks you to confirm before it opens the first time.",
-    install: ["Open the file you downloaded.", "Drag Beryl onto the Applications folder.", "Open Beryl from Applications."],
+    why: "Kestrel is not yet registered with Apple, so your Mac asks you to confirm before it opens the first time.",
+    install: ["Open the file you downloaded.", "Drag Kestrel onto the Applications folder.", "Open Kestrel from Applications."],
     open: [
-      "Your Mac says it could not verify Beryl. Click Done.",
+      "Your Mac says it could not verify Kestrel. Click Done.",
       "Open System Settings and go to Privacy & Security.",
-      "Scroll down to Security and click Open Anyway next to Beryl.",
+      "Scroll down to Security and click Open Anyway next to Kestrel.",
       "Confirm with your password or Touch ID. You only do this once.",
     ],
-    otherwise: "On macOS 13 or 14 it is quicker: right-click Beryl in Applications, choose Open, then Open again.",
+    otherwise: "On macOS 13 or 14 it is quicker: right-click Kestrel in Applications, choose Open, then Open again.",
   },
   windows: {
     os: "windows",
-    why: "Beryl is not yet signed for Windows, so Windows asks you to confirm before it runs the first time.",
-    install: ["Right-click the file you downloaded and choose Extract All.", "Open the Beryl folder.", "Double-click Beryl."],
+    why: "Kestrel is not yet signed for Windows, so Windows asks you to confirm before it runs the first time.",
+    install: ["Right-click the file you downloaded and choose Extract All.", "Open the Kestrel folder.", "Double-click Kestrel."],
     open: ["If a blue box says Windows protected your PC, click More info.", "Click Run anyway. You only do this once."],
-    otherwise: "Keep the Beryl folder wherever you like. To remove Beryl, delete the folder.",
+    otherwise: "Keep the Kestrel folder wherever you like. To remove Kestrel, delete the folder.",
   },
 };

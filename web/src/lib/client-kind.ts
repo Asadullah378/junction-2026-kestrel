@@ -6,11 +6,11 @@
 export type ClientKind = "web" | "desktop";
 
 /** Sent with every request to the app's own server, so it knows which kind is asking. */
-export const CLIENT_HEADER = "x-beryl-client";
+export const CLIENT_HEADER = "x-kestrel-client";
 
 /** The kind of client this code is running in. On the server (no window) it is "web". */
 export function clientKind(): ClientKind {
-  return typeof window !== "undefined" && "berylDesktop" in window ? "desktop" : "web";
+  return typeof window !== "undefined" && "kestrelDesktop" in window ? "desktop" : "web";
 }
 
 /** The kind a request to the server says it comes from. */

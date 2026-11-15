@@ -69,7 +69,7 @@ app.whenReady().then(async () => {
   }
   // Every icon is drawn large in one hidden window and scaled down to its size.
   const os = require("node:os");
-  const sheet = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "beryl-icons-")), "icon.html");
+  const sheet = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "kestrel-icons-")), "icon.html");
   const win = new BrowserWindow({ width: 1024, height: 1024, show: false, frame: false, transparent: true, webPreferences: { offscreen: true } });
   for (const icon of ICONS) {
     fs.writeFileSync(sheet, `<!doctype html><style>html,body{margin:0;background:transparent;overflow:hidden}svg{display:block;width:100vw;height:100vh}</style>${svg(icon.art)}`);

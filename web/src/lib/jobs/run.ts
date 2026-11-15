@@ -48,8 +48,8 @@ const TRIM_ABOVE_TOKENS = 120_000;
 const NOT_IN_A_RUN = ["askUser", "requestLocation", "createJob", "updateJob", "deleteJob", "listJobs"] as const;
 
 type Running = { runId: string; abort: AbortController; spent: () => number; userId: string };
-const holder = globalThis as typeof globalThis & { __berylJobRuns?: Map<string, Running> };
-const running: Map<string, Running> = (holder.__berylJobRuns ??= new Map());
+const holder = globalThis as typeof globalThis & { __kestrelJobRuns?: Map<string, Running> };
+const running: Map<string, Running> = (holder.__kestrelJobRuns ??= new Map());
 
 /** What the account's job runs in progress have cost so far and not yet recorded. */
 export const jobSpendingNow = (userId: string): number => [...running.values()].filter((r) => r.userId === userId).reduce((sum, r) => sum + r.spent(), 0);
@@ -168,7 +168,7 @@ async function carryOut(job: JobToRun, runId: string, trigger: "schedule" | "man
     body: markdownToText(output).replace(/\s+/g, " ").slice(0, 220),
     ...link,
     dedupe: `run:${runId}`,
-    // The email is what a job is for: it goes out whether or not the user has Beryl open.
+    // The email is what a job is for: it goes out whether or not the user has Kestrel open.
     email: "always",
     page: {
       label: trigger === "manual" ? "Job result · Run now" : "Job result",
@@ -176,7 +176,7 @@ async function carryOut(job: JobToRun, runId: string, trigger: "schedule" | "man
       lead: `${when} · ${job.scheduleText}`,
       bodyHtml: `${markdownToEmailHtml(output)}${done.problem ? `<p style="margin:16px 0 0;color:${EMAIL_STYLE.MUTED}">${escapeHtml(done.problem)}</p>` : ""}${sources}`,
       button: { label: "Open this run", href: linkFor(link) },
-      why: "You set this job up in Beryl. You can pause, change or delete it on the Jobs page.",
+      why: "You set this job up in Kestrel. You can pause, change or delete it on the Jobs page.",
       subject: `${job.title} · ${when}`,
       preview: markdownToText(output).replace(/\s+/g, " ").slice(0, 140),
       text: `${job.title}\n${when} · ${job.scheduleText}\n\n${markdownToText(output)}\n\n${linkFor(link)}`,

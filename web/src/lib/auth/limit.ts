@@ -14,8 +14,8 @@ const LOCK_MS = 10 * 60_000;
 const PER_EMAIL = 6;
 const PER_ADDRESS = 30;
 
-const holder = globalThis as unknown as { __berylAttempts?: Map<string, Entry> };
-const attempts = (holder.__berylAttempts ??= new Map<string, Entry>());
+const holder = globalThis as unknown as { __kestrelAttempts?: Map<string, Entry> };
+const attempts = (holder.__kestrelAttempts ??= new Map<string, Entry>());
 
 function entry(key: string, now: number): Entry {
   let e = attempts.get(key);

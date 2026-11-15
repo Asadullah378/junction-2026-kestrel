@@ -24,6 +24,6 @@ export default async function Home() {
       </SessionProvider>
     );
   }
-  if (/BerylDesktop\//.test((await headers()).get("user-agent") ?? "")) redirect("/login");
-  return <Landing demoVideo={process.env.BERYL_DEMO_VIDEO ?? ""} />;
+  if (/KestrelDesktop\//.test((await headers()).get("user-agent") ?? "")) redirect("/login");
+  return <Landing demoVideo={process.env.KESTREL_DEMO_VIDEO ?? ""} />;
 }

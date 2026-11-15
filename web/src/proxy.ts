@@ -25,9 +25,9 @@ const PRIVATE_PAGES = /^\/(?:chat|jobs|admin|dev)(?:\/|$)/;
 /** A chat's id, as the server accepts it everywhere. */
 const CHAT_ID = /^[A-Za-z0-9_-]{6,80}$/;
 /** The page that was asked for, handed on to the app so a page that sends someone to sign in can send them back. */
-export const PATH_HEADER = "x-beryl-path";
+export const PATH_HEADER = "x-kestrel-path";
 /** The desktop app names itself in its window's User-Agent (desktop/main.cjs). */
-const DESKTOP_APP = /BerylDesktop\//;
+const DESKTOP_APP = /KestrelDesktop\//;
 const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/logout", "/api/health"]);
 /** Icons, the web app manifest and the like: needed before anyone has signed in. */
 const PUBLIC_FILE = /^\/(?:favicon\.ico|icon(?:[-.\w]*)?|apple-icon(?:[-.\w]*)?|manifest\.(?:webmanifest|json)|sw\.js|robots\.txt)$|\.(?:png|svg|ico|webp|jpg|jpeg|woff2?)$/;

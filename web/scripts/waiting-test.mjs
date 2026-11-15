@@ -9,7 +9,7 @@
 // uses the pretend site at /dev/sandbox.html. The cases are described in waiting-cases.cjs.
 //
 // It takes about ten minutes and costs a few cents in model calls.
-// BERYL_TEST_SHOTS=<folder> saves pictures along the way.
+// KESTREL_TEST_SHOTS=<folder> saves pictures along the way.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -27,12 +27,12 @@ const cases = wanted.length ? wanted : Object.keys(CASES);
 
 let failed = 0;
 for (const name of cases) {
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), `beryl-waiting-${name}-`));
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), `kestrel-waiting-${name}-`));
   console.log(`\n${name}`);
   for (const phase of CASES[name]) {
     if (phase === "2") console.log("     the app is closed; opening it again");
     const run = spawnSync(electron, [path.join(here, "waiting-cases.cjs"), port], {
-      env: { ...process.env, CASE: name, PHASE: phase, BERYL_WAITING_PROFILE: profile },
+      env: { ...process.env, CASE: name, PHASE: phase, KESTREL_WAITING_PROFILE: profile },
       encoding: "utf8",
       timeout: 12 * 60 * 1000,
     });

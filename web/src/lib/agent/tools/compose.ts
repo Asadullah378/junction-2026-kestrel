@@ -154,7 +154,7 @@ export function showWidgetTool() {
           "It runs in a sandboxed frame with no network access: no external scripts, fonts, images over http, or fetch. Use inline SVG or canvas and plain JavaScript. " +
           "Style with the provided CSS variables (--foreground, --muted-foreground, --card, --border, --brand, --brand-soft, --primary, --primary-foreground, --up, --down, --chart-1 to --chart-5, --radius) " +
           "and helper classes (.btn, .btn-primary, .card, .muted, .row, .grid) so it matches the app in light and dark themes; never hard-code colours. " +
-          "window.hovi.ask(text) sends text to you as the user's next message, hovi.open(url) opens a page, hovi.copy(text) copies. Keep it under 150 lines.",
+          "window.kestrel.ask(text) sends text to you as the user's next message, kestrel.open(url) opens a page, kestrel.copy(text) copies. Keep it under 150 lines.",
       ),
     height: z.number().optional().describe("html: starting height in pixels."),
   });

@@ -67,7 +67,7 @@ export function RunPane({
   }, [runId, take, running]);
 
   // The cards are shown as they were: where the user is only matters for a map's "you are here".
-  const [place] = useStored("hovi.place", "");
+  const [place] = useStored("kestrel.place", "");
   const { location } = useExactLocation();
   const handlers = React.useMemo<WidgetHandlers>(() => ({ approximatePlace: place || undefined, savedLocation: location }), [place, location]);
 

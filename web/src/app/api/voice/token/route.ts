@@ -97,7 +97,7 @@ export async function POST(req: Request) {
           config: {
             responseModalities: [Modality.AUDIO],
             systemInstruction: voiceSystemInstruction(client, { today, time, place: body.place?.slice(0, 80), coords, locationDeclined: body.locationDeclined === true, client, browser }, typeof body.history === "string" ? body.history : undefined),
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: process.env.BERYL_VOICE || "Sulafat" } } },
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: process.env.KESTREL_VOICE || "Sulafat" } } },
             // What the user said and what the agent said, as text, for the conversation view and the captions.
             inputAudioTranscription: {},
             outputAudioTranscription: {},

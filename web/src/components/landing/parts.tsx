@@ -307,7 +307,7 @@ const DEMO_POSTER = "/landing/demo-poster.jpg";
 
 /**
  * The demo. `src` is a YouTube link or the address of a video file; it comes from the
- * BERYL_DEMO_VIDEO setting on the server. Until there is one, the frame says the video is coming.
+ * KESTREL_DEMO_VIDEO setting on the server. Until there is one, the frame says the video is coming.
  * Nothing of the video is fetched until the visitor presses play.
  */
 export function DemoVideo({ src }: { src: string }) {

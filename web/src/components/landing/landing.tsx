@@ -35,7 +35,7 @@ import { Live, type DemoName } from "./live";
 import { DemoVideo, DownloadPicker, Drift, ModesDemo, Motion, Reveal, Rise, SignInLink, Stagger, StaggerItem, TopNav, VoiceBars } from "./parts";
 
 /*
- * The front page of the website, for someone who is not signed in. It says what Beryl does and
+ * The front page of the website, for someone who is not signed in. It says what Kestrel does and
  * shows it: most of what is on this page is the app's own cards, running with sample data
  * (live.tsx). What cannot run here (the desktop app at work in its browser, a call, the Jobs
  * page) is shown in real screenshots (public/landing), one per theme, each in a frame that fits
@@ -92,7 +92,7 @@ export function Landing({ signedIn = false, demoVideo = "" }: { signedIn?: boole
               {/* A question and its answer, live: the card is the app's own. A phone and two notices sit in front of it. */}
               <Rise delay={0.3} className="relative mx-auto mt-12 max-w-[1000px] sm:mt-16">
                 <div className="stage-glow pointer-events-none absolute -inset-x-16 -inset-y-10 -z-10 hidden sm:block" aria-hidden />
-                <BrowserFrame address="beryl.zeroanomaly.tech">
+                <BrowserFrame address="kestrel.zeroanomaly.tech">
                   <div className="bg-background px-3 pt-5 sm:px-8 sm:pt-7">
                     <div className="mx-auto max-w-[43rem]">
                       <Bubble>Where should we eat near Kamppi tonight?</Bubble>
@@ -386,7 +386,7 @@ export function Landing({ signedIn = false, demoVideo = "" }: { signedIn?: boole
                 <div className="stage-glow pointer-events-none absolute -inset-8 -z-10" aria-hidden />
                 <div className="lg:pr-[17%] lg:pb-[9%]">
                   <Reveal>
-                    <BrowserFrame address="beryl.zeroanomaly.tech">
+                    <BrowserFrame address="kestrel.zeroanomaly.tech">
                       <Shot name="places" alt={`${APP_NAME} in a web browser, answering with a map of coffee shops`} />
                     </BrowserFrame>
                   </Reveal>
@@ -614,7 +614,7 @@ function SourcePill({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** One of the three whose work Beryl stands on: its mark, its name, and what it does here. */
+/** One of the three whose work Kestrel stands on: its mark, its name, and what it does here. */
 function Maker({ logo, name, by, what }: { logo: string; name: string; by?: string; what: string }) {
   return (
     <StaggerItem>

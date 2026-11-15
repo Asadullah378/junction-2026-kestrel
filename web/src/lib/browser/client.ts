@@ -36,7 +36,7 @@ const watchers = new Set<Watcher>();
 let actionTimer: ReturnType<typeof setTimeout> | undefined;
 let started = false;
 
-const desktop = () => (typeof window === "undefined" ? undefined : window.berylDesktop);
+const desktop = () => (typeof window === "undefined" ? undefined : window.kestrelDesktop);
 
 function update(patch: Partial<BrowserSnapshot>) {
   const previous = snapshot;
@@ -134,7 +134,7 @@ export async function control(request: ControlRequest): Promise<BrowserState> {
 
 /** What a step answers with when there is no browser to take it in. */
 function noBrowser(call: BrowserCall): BrowserStepData {
-  const problem = "The live browser is part of the desktop app, and this conversation is open on the web. Nothing was done on the site. Tell the user that acting on websites needs the Beryl desktop app.";
+  const problem = "The live browser is part of the desktop app, and this conversation is open on the web. Nothing was done on the site. Tell the user that acting on websites needs the Kestrel desktop app.";
   return { kind: "browser", label: "The live browser is in the desktop app", action: call.tool === "browserOpen" ? "open" : call.tool === "browserClose" ? "close" : "read", url: "", title: "", ok: false, problem, page: problem, sources: [] };
 }
 

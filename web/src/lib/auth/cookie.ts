@@ -3,7 +3,7 @@
  * request gate (src/proxy.ts) needs them too and must stay small.
  */
 
-export const SESSION_COOKIE = "beryl_session";
+export const SESSION_COOKIE = "kestrel_session";
 export const SESSION_SECONDS = 30 * 24 * 60 * 60;
 
 /** Was this request made over HTTPS? Behind a host's load balancer the original scheme is in a header. */

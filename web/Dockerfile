@@ -1,11 +1,11 @@
-# The Beryl server as a container: the Next.js app, built with its standalone output so the image
+# The Kestrel server as a container: the Next.js app, built with its standalone output so the image
 # holds only what the server needs to run. One process, listening on $PORT.
 #
-#   docker build -t beryl-web exa/web
-#   docker run --rm -p 8080:8080 --env-file exa/.env.local beryl-web
+#   docker build -t kestrel-web exa/web
+#   docker run --rm -p 8080:8080 --env-file exa/.env.local kestrel-web
 #
 # The desktop app is not in here (it is packaged on its own, see desktop/pack.mjs), and neither are
-# its installers: the site sends visitors to wherever BERYL_DOWNLOADS_URL says they are.
+# its installers: the site sends visitors to wherever KESTREL_DOWNLOADS_URL says they are.
 
 FROM node:24-slim AS base
 RUN npm install -g pnpm@11.17.0

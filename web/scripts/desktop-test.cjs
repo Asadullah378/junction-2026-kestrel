@@ -14,8 +14,8 @@
 // it is; the user's own clicks and keys go to the page when it is their turn and not otherwise;
 // hiding the pane does not lose the page; closing takes the view away.
 //
-// BERYL_TEST_SHOTS=<folder> saves pictures of the window along the way.
-// BERYL_TEST_CHAT="<request>" then types that request into the app and lets the agent work on it.
+// KESTREL_TEST_SHOTS=<folder> saves pictures of the window along the way.
+// KESTREL_TEST_CHAT="<request>" then types that request into the app and lets the agent work on it.
 const { app, BrowserWindow, webContents } = require("electron");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -23,11 +23,11 @@ const path = require("node:path");
 
 const port = process.argv.slice(2).find((a) => /^\d{2,5}$/.test(a)) ?? "3000";
 const base = `http://localhost:${port}`;
-const shots = process.env.BERYL_TEST_SHOTS;
-process.env.BERYL_URL = base;
+const shots = process.env.KESTREL_TEST_SHOTS;
+process.env.KESTREL_URL = base;
 const envFile = path.join(__dirname, "../../.env.local");
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), "beryl-desktop-test-"));
+const profile = fs.mkdtempSync(path.join(os.tmpdir(), "kestrel-desktop-test-"));
 app.setPath("userData", profile);
 process.on("exit", () => fs.rmSync(profile, { recursive: true, force: true }));
 const { engine } = require("../desktop/main.cjs");
@@ -78,7 +78,7 @@ async function main() {
   };
 
   await signIn(inHost);
-  check("the app offers its browser to the interface", Boolean(await until(() => inHost("Boolean(window.berylDesktop && window.berylDesktop.browser && window.berylDesktop.browser.run)"))));
+  check("the app offers its browser to the interface", Boolean(await until(() => inHost("Boolean(window.kestrelDesktop && window.kestrelDesktop.browser && window.kestrelDesktop.browser.run)"))));
   check("the interface is up", Boolean(await until(() => inHost("Boolean(document.querySelector('textarea[aria-label=\"Message\"]'))"))));
   const viewBox = () =>
     inHost("(() => { const v = document.querySelector('webview'); if (!v) return null; const r = v.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, visible: r.x >= 0 && r.right > 0, partition: v.getAttribute('partition') }; })()");
@@ -93,10 +93,10 @@ async function main() {
     return b && b.visible && b.width > 200 ? b : undefined;
   });
   check("the view is on screen beside the chat", Boolean(box), JSON.stringify(await viewBox()));
-  check("sign-ins are kept in a store of this account's own", /^persist:beryl-[\w-]+$/.test(box?.partition ?? ""), box?.partition);
+  check("sign-ins are kept in a store of this account's own", /^persist:kestrel-[\w-]+$/.test(box?.partition ?? ""), box?.partition);
   const facts = await inGuest("({ webdriver: navigator.webdriver, agent: navigator.userAgent })");
   check("the view is an ordinary browser, not an automation one", facts.webdriver === false, JSON.stringify(facts));
-  check("it tells sites it is Beryl, on Chrome", /Beryl\/[\d.]+ Chrome\/\d+/.test(facts.agent) && !/Electron|Headless/.test(facts.agent), facts.agent);
+  check("it tells sites it is Kestrel, on Chrome", /Kestrel\/[\d.]+ Chrome\/\d+/.test(facts.agent) && !/Electron|Headless/.test(facts.agent), facts.agent);
 
   // A narrow view is laid out at desktop width and drawn smaller.
   const sized = await until(async () => {
@@ -292,9 +292,9 @@ async function main() {
   await engine.control({ action: "close" });
   await until(async () => !guest());
 
-  if (process.env.BERYL_TEST_CHAT) await chat(process.env.BERYL_TEST_CHAT, inHost, picture);
+  if (process.env.KESTREL_TEST_CHAT) await chat(process.env.KESTREL_TEST_CHAT, inHost, picture);
 
-  const partition = await inHost("window.berylDesktop.browser.forget('persist:beryl-not-an-account/../x').then(() => 'ignored')");
+  const partition = await inHost("window.kestrelDesktop.browser.forget('persist:kestrel-not-an-account/../x').then(() => 'ignored')");
   check("Forget sign-ins only ever touches an account's own store", partition === "ignored");
   return failed;
 }
@@ -303,10 +303,10 @@ async function main() {
 async function signIn(inHost) {
   const needsSignIn = await until(() => inHost("location.pathname.startsWith('/login') ? 'yes' : document.querySelector('textarea[aria-label=\"Message\"]') ? 'no' : ''"), 30000);
   if (needsSignIn !== "yes") return;
-  // The admin from exa/.env.local, or another account named by BERYL_TEST_EMAIL and BERYL_TEST_PASSWORD.
-  const email = process.env.BERYL_TEST_EMAIL || process.env.ADMIN_EMAIL;
-  const password = process.env.BERYL_TEST_PASSWORD || process.env.ADMIN_PASSWORD;
-  if (!email || !password) throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD are needed in exa/.env.local to sign in (or BERYL_TEST_EMAIL and BERYL_TEST_PASSWORD for another account).");
+  // The admin from exa/.env.local, or another account named by KESTREL_TEST_EMAIL and KESTREL_TEST_PASSWORD.
+  const email = process.env.KESTREL_TEST_EMAIL || process.env.ADMIN_EMAIL;
+  const password = process.env.KESTREL_TEST_PASSWORD || process.env.ADMIN_PASSWORD;
+  if (!email || !password) throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD are needed in exa/.env.local to sign in (or KESTREL_TEST_EMAIL and KESTREL_TEST_PASSWORD for another account).");
   const fill = (selector, value) =>
     inHost(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
   // Wait until the form is alive (the page has taken it over), not merely drawn: before that, typing is lost.
@@ -341,9 +341,9 @@ async function chat(prompt, inHost, picture) {
   }, 180000);
   await wait(800);
   await picture("chat-settled");
-  // BERYL_TEST_HANDBACK=1: when the agent hands the page over, press "Done, continue" (without
+  // KESTREL_TEST_HANDBACK=1: when the agent hands the page over, press "Done, continue" (without
   // doing anything on the page) and let it carry on, to check the hand-back reaches the agent.
-  if (engine.state().handover && process.env.BERYL_TEST_HANDBACK) {
+  if (engine.state().handover && process.env.KESTREL_TEST_HANDBACK) {
     console.log("     pressing Done, continue");
     await inHost("[...document.querySelectorAll('button')].find((b) => /Done, continue/.test(b.textContent))?.click(); 1");
     quietSince = 0;

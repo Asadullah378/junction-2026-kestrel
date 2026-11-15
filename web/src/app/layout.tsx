@@ -9,7 +9,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 /** The site's public address, so link previews point at pictures on the real site. Unset in development. */
-const site = process.env.BERYL_SITE_URL?.trim();
+const site = process.env.KESTREL_SITE_URL?.trim();
 
 export const metadata: Metadata = {
   ...(site && /^https?:\/\//.test(site) ? { metadataBase: new URL(site) } : {}),

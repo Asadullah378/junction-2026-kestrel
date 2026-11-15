@@ -31,7 +31,7 @@ async function nominatim(lat: string, lng: string): Promise<Named> {
   const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=14&accept-language=en`, {
     signal: AbortSignal.timeout(4000),
     // Nominatim asks every client to identify its application.
-    headers: { accept: "application/json", "user-agent": "hovi-butler-demo/0.1" },
+    headers: { accept: "application/json", "user-agent": "kestrel-butler-demo/0.1" },
   });
   if (!res.ok) return {};
   const data = (await res.json()) as {

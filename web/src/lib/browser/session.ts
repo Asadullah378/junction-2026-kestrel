@@ -322,7 +322,7 @@ export class BrowserSession {
     if (!page || page.isClosed()) return;
     const control = this.state.control;
     void this.cdpFor(page)
-      .then((session) => (session as unknown as { send(method: string, params: object): Promise<unknown> }).send("Beryl.setControl", { control }))
+      .then((session) => (session as unknown as { send(method: string, params: object): Promise<unknown> }).send("Kestrel.setControl", { control }))
       .catch(() => {});
   }
 

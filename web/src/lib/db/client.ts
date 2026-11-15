@@ -9,8 +9,8 @@ import * as schema from "./schema";
  */
 
 type Store = { url?: string; sql?: postgres.Sql; db?: PostgresJsDatabase<typeof schema> };
-const holder = globalThis as unknown as { __berylDb?: Store };
-const store = (holder.__berylDb ??= {});
+const holder = globalThis as unknown as { __kestrelDb?: Store };
+const store = (holder.__kestrelDb ??= {});
 
 /** The database is not configured or cannot be reached. `message` is a sentence fit to show. */
 export class DatabaseUnavailable extends Error {}

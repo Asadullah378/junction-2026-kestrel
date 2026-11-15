@@ -29,8 +29,8 @@ export function useBrowserLayout(): Layout {
   return React.useContext(LayoutContext) ?? NO_LAYOUT;
 }
 
-const MODE_KEY = "hovi.browser.mode";
-const SPLIT_KEY = "hovi.browser.split";
+const MODE_KEY = "kestrel.browser.mode";
+const SPLIT_KEY = "kestrel.browser.split";
 const DEFAULT_SPLIT = 0.58;
 /** Narrowest useful browser pane and chat, in pixels. */
 const MIN_PANE = 360;

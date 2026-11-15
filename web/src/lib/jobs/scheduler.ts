@@ -13,8 +13,8 @@ import { runDue } from "./run";
 const LOOK_EVERY_MS = 20_000;
 
 type State = { timer?: ReturnType<typeof setInterval>; looking: boolean };
-const holder = globalThis as typeof globalThis & { __berylScheduler?: State };
-const state: State = (holder.__berylScheduler ??= { looking: false });
+const holder = globalThis as typeof globalThis & { __kestrelScheduler?: State };
+const state: State = (holder.__kestrelScheduler ??= { looking: false });
 
 async function look(): Promise<void> {
   if (state.looking) return;

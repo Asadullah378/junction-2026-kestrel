@@ -10,7 +10,7 @@
 // sent) and a live call (the question is heard, the weather tool runs through the app's server,
 // its card is shown, the agent answers aloud, and the call is written into the conversation).
 //
-// BERYL_TEST_SHOTS=<folder> saves pictures of the window along the way.
+// KESTREL_TEST_SHOTS=<folder> saves pictures of the window along the way.
 const { app, BrowserWindow } = require("electron");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -18,17 +18,17 @@ const path = require("node:path");
 
 const port = process.argv.slice(2).find((a) => /^\d{2,5}$/.test(a)) ?? "3000";
 const base = `http://localhost:${port}`;
-const shots = process.env.BERYL_TEST_SHOTS;
-process.env.BERYL_URL = base;
+const shots = process.env.KESTREL_TEST_SHOTS;
+process.env.KESTREL_URL = base;
 const envFile = path.join(__dirname, "../../.env.local");
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), "beryl-voice-test-"));
+const profile = fs.mkdtempSync(path.join(os.tmpdir(), "kestrel-voice-test-"));
 app.setPath("userData", profile);
 process.on("exit", () => fs.rmSync(profile, { recursive: true, force: true }));
 // A recording in place of the microphone, played once; no permission prompt; no sound from the speakers.
 app.commandLine.appendSwitch("use-fake-device-for-media-stream");
 app.commandLine.appendSwitch("use-fake-ui-for-media-stream");
-app.commandLine.appendSwitch("use-file-for-fake-audio-capture", `${process.env.BERYL_TEST_WAV || path.join(__dirname, "fixtures/weather-question.wav")}%noloop`);
+app.commandLine.appendSwitch("use-file-for-fake-audio-capture", `${process.env.KESTREL_TEST_WAV || path.join(__dirname, "fixtures/weather-question.wav")}%noloop`);
 app.commandLine.appendSwitch("mute-audio");
 // The audio service has to be able to read the recording from disk.
 app.commandLine.appendSwitch("disable-features", "AudioServiceSandbox");
@@ -65,8 +65,8 @@ async function main() {
   const box = "document.querySelector('textarea[aria-label=\"Message\"]')";
   const press = (label) => inHost(`(() => { const b = document.querySelector('button[aria-label=${JSON.stringify(label)}]'); if (!b) return false; b.click(); return true; })()`);
 
-  // BERYL_TEST_PHONE=1: the window is as narrow as a phone, to see the call as most people will.
-  if (process.env.BERYL_TEST_PHONE) {
+  // KESTREL_TEST_PHONE=1: the window is as narrow as a phone, to see the call as most people will.
+  if (process.env.KESTREL_TEST_PHONE) {
     win.setMinimumSize(360, 600);
     win.setSize(400, 860);
   }
@@ -128,7 +128,7 @@ async function main() {
   console.log("     the agent said:", said.slice(0, 400));
   // The conversation is saved when the call ends. The test leaves nothing behind in the account.
   await wait(2500);
-  const removed = await inHost("(() => { const id = localStorage.getItem('hovi.active'); return id ? fetch('/api/conversations/' + id, { method: 'DELETE', headers: { 'x-beryl-client': 'desktop' } }).then((r) => r.status) : 0; })()");
+  const removed = await inHost("(() => { const id = localStorage.getItem('kestrel.active'); return id ? fetch('/api/conversations/' + id, { method: 'DELETE', headers: { 'x-kestrel-client': 'desktop' } }).then((r) => r.status) : 0; })()");
   check("the call was saved to the account (and the test removes it again)", removed === 200 || removed === 204, String(removed));
   return failed;
 }
@@ -137,10 +137,10 @@ async function main() {
 async function signIn(inHost) {
   const needsSignIn = await until(() => inHost("location.pathname.startsWith('/login') ? 'yes' : document.querySelector('textarea[aria-label=\"Message\"]') ? 'no' : ''"), 30000);
   if (needsSignIn !== "yes") return;
-  // The admin from exa/.env.local, or another account named by BERYL_TEST_EMAIL and BERYL_TEST_PASSWORD.
-  const email = process.env.BERYL_TEST_EMAIL || process.env.ADMIN_EMAIL;
-  const password = process.env.BERYL_TEST_PASSWORD || process.env.ADMIN_PASSWORD;
-  if (!email || !password) throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD are needed in exa/.env.local to sign in (or BERYL_TEST_EMAIL and BERYL_TEST_PASSWORD for another account).");
+  // The admin from exa/.env.local, or another account named by KESTREL_TEST_EMAIL and KESTREL_TEST_PASSWORD.
+  const email = process.env.KESTREL_TEST_EMAIL || process.env.ADMIN_EMAIL;
+  const password = process.env.KESTREL_TEST_PASSWORD || process.env.ADMIN_PASSWORD;
+  if (!email || !password) throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD are needed in exa/.env.local to sign in (or KESTREL_TEST_EMAIL and KESTREL_TEST_PASSWORD for another account).");
   const fill = (selector, value) =>
     inHost(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
   await until(() => inHost("(() => { const el = document.querySelector('input[type=email]'); return Boolean(el && document.querySelector('input[type=password]') && Object.keys(el).some((k) => k.startsWith('__reactProps'))); })()"));

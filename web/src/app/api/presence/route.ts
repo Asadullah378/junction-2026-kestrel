@@ -15,7 +15,7 @@ const Body = z.object({
 
 /**
  * A window says whether it is in front of its user. The server uses that for one thing: someone
- * who has Beryl open is not sent an email about what they can see there. The answer carries the
+ * who has Kestrel open is not sent an email about what they can see there. The answer carries the
  * latest notifications, so the same request keeps the bell up to date.
  */
 export async function POST(req: Request) {

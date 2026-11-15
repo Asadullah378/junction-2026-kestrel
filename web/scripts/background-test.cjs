@@ -8,18 +8,18 @@
 // its figures; and Stop ends a task on the server too. It also sends a task into the live
 // browser, leaves the conversation, and expects it to finish out of sight.
 //
-// It costs a few cents in model and Exa calls. BERYL_TEST_SHOTS=<folder> saves pictures along the way.
+// It costs a few cents in model and Exa calls. KESTREL_TEST_SHOTS=<folder> saves pictures along the way.
 const { app, BrowserWindow } = require("electron");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
 const port = process.argv.slice(2).find((a) => /^\d{2,5}$/.test(a)) ?? "3000";
-process.env.BERYL_URL = `http://localhost:${port}`;
-const shots = process.env.BERYL_TEST_SHOTS;
+process.env.KESTREL_URL = `http://localhost:${port}`;
+const shots = process.env.KESTREL_TEST_SHOTS;
 const envFile = path.join(__dirname, "../../.env.local");
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), "beryl-background-test-"));
+const profile = fs.mkdtempSync(path.join(os.tmpdir(), "kestrel-background-test-"));
 app.setPath("userData", profile);
 process.on("exit", () => fs.rmSync(profile, { recursive: true, force: true }));
 require(path.join(__dirname, "../desktop/main.cjs"));
@@ -48,21 +48,21 @@ const ok = (label, pass, note = "") => { if (!pass) failures += 1; console.log(`
   const send = () => inHost(`(() => { ${V} vis('button[aria-label="Send"]')[0].click(); return true; })()`);
   const ask = async (text) => { await type(text); await wait(250); await send(); };
   const runningDots = () => inHost("document.querySelectorAll('[aria-label=\"This chat is still working\"]').length");
-  const active = () => inHost("localStorage.getItem('hovi.active')");
-  const saved = (id) => inHost(`fetch('/api/conversations/${id}', { headers: { 'x-beryl-client': 'desktop' } }).then((r) => r.ok ? r.json() : null)`);
+  const active = () => inHost("localStorage.getItem('kestrel.active')");
+  const saved = (id) => inHost(`fetch('/api/conversations/${id}', { headers: { 'x-kestrel-client': 'desktop' } }).then((r) => r.ok ? r.json() : null)`);
   const serverRuns = () => inHost("fetch('/api/chat/runs').then((r) => r.json()).then((j) => j.running.map((x) => x.id))");
   const shownText = () => inHost(`(() => { ${V} return vis('main, [class*="overflow-y-auto"]').map((el) => el.innerText).join(' ').replace(/\\s+/g, ' '); })()`);
   const signIn = async () => {
     await until(() => inHost("(() => { const el = document.querySelector('input[type=email]'); return Boolean(el && Object.keys(el).some((k) => k.startsWith('__reactProps'))); })()"));
     const fill = (sel, value) => inHost(`(() => { const el = document.querySelector(${JSON.stringify(sel)}); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-    await fill("input[type=email]", (process.env.BERYL_TEST_EMAIL || process.env.ADMIN_EMAIL)); await fill("input[type=password]", (process.env.BERYL_TEST_PASSWORD || process.env.ADMIN_PASSWORD));
+    await fill("input[type=email]", (process.env.KESTREL_TEST_EMAIL || process.env.ADMIN_EMAIL)); await fill("input[type=password]", (process.env.KESTREL_TEST_PASSWORD || process.env.ADMIN_PASSWORD));
     await inHost("document.querySelector('form').requestSubmit(); 1");
   };
   const ready = () => until(() => inHost(`(() => { ${V} return vis('textarea[aria-label="Message"]').length > 0; })()`));
   const made = [];
 
   await signIn(); await ready();
-  await inHost("localStorage.removeItem('hovi.active'); localStorage.setItem('hovi.mode', 'fast'); localStorage.setItem('hovi.effort', '1'); location.reload(); 1");
+  await inHost("localStorage.removeItem('kestrel.active'); localStorage.setItem('kestrel.mode', 'fast'); localStorage.setItem('kestrel.effort', '1'); location.reload(); 1");
   await wait(1500); await ready(); await wait(600);
 
   // ── A suggestion fills the message box and does not send ──
@@ -156,7 +156,7 @@ const ok = (label, pass, note = "") => { if (!pass) failures += 1; console.log(`
   ok("the browser task finished out of sight", Boolean(browsed), browsed ? `${browsed.steps.join(", ")}: ${browsed.text.replace(/\s+/g, " ").slice(0, 100)}` : "not finished");
   made.push(await active());
 
-  for (const id of made) if (id) await inHost(`fetch('/api/conversations/${id}', { method: 'DELETE', headers: { 'x-beryl-client': 'desktop' } }).then(() => 1)`);
+  for (const id of made) if (id) await inHost(`fetch('/api/conversations/${id}', { method: 'DELETE', headers: { 'x-kestrel-client': 'desktop' } }).then(() => 1)`);
   console.log(failures ? `\n${failures} check(s) failed.` : "\nTasks keep running in the background as intended.");
   app.exit(failures ? 1 : 0);
 })().catch((e) => { console.log("TEST broke", e); app.exit(1); });

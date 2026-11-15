@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { bigserial, boolean, check, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 /*
- * Everything Beryl keeps on the server: accounts, their sign-ins, their conversations, and what
+ * Everything Kestrel keeps on the server: accounts, their sign-ins, their conversations, and what
  * each model request cost. Preferences, the theme and the desktop app's website sign-ins stay on
  * the user's own device.
  *

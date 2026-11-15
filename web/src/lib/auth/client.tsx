@@ -30,7 +30,7 @@ export async function signOut(): Promise<void> {
     /* offline: the cookie stays, and the next request will say so */
   }
   try {
-    window.localStorage.removeItem("hovi.active");
+    window.localStorage.removeItem("kestrel.active");
   } catch {
     /* storage blocked */
   }

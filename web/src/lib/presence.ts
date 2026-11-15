@@ -2,7 +2,7 @@ import "server-only";
 import { PRESENCE_LASTS_MS } from "@/lib/notifications/types";
 
 /*
- * Who has Beryl open in front of them right now. A window that is visible and focused says so
+ * Who has Kestrel open in front of them right now. A window that is visible and focused says so
  * every few seconds (the web and the desktop app alike); when it is hidden or closed it says so
  * once, or simply stops. An account is "here" while any of its windows has said so recently.
  *
@@ -11,8 +11,8 @@ import { PRESENCE_LASTS_MS } from "@/lib/notifications/types";
  */
 
 type Store = Map<string, Map<string, number>>;
-const holder = globalThis as typeof globalThis & { __berylPresence?: Store };
-const store: Store = (holder.__berylPresence ??= new Map());
+const holder = globalThis as typeof globalThis & { __kestrelPresence?: Store };
+const store: Store = (holder.__kestrelPresence ??= new Map());
 
 /** A window reports whether it is in front of its user. `windowId` tells windows of one account apart. */
 export function checkIn(userId: string, windowId: string, here: boolean): void {

@@ -13,7 +13,7 @@ import { MIC_RATE, SPEAKER_RATE } from "./models";
 
 /** The microphone, downsampled to what the Live API takes, 40 ms at a time. */
 const MIC_WORKLET = `
-class BerylMic extends AudioWorkletProcessor {
+class KestrelMic extends AudioWorkletProcessor {
   constructor() {
     super();
     this.step = sampleRate / ${MIC_RATE};
@@ -52,12 +52,12 @@ class BerylMic extends AudioWorkletProcessor {
     return true;
   }
 }
-registerProcessor("beryl-mic", BerylMic);
+registerProcessor("kestrel-mic", KestrelMic);
 `;
 
 /** The speaker: a queue of speech that starts at once, reports how far it has got, and empties on demand. */
 const SPEAKER_WORKLET = `
-class BerylSpeaker extends AudioWorkletProcessor {
+class KestrelSpeaker extends AudioWorkletProcessor {
   constructor() {
     super();
     this.queue = [];
@@ -127,7 +127,7 @@ class BerylSpeaker extends AudioWorkletProcessor {
     return true;
   }
 }
-registerProcessor("beryl-speaker", BerylSpeaker);
+registerProcessor("kestrel-speaker", KestrelSpeaker);
 `;
 
 const moduleUrl = (code: string) => URL.createObjectURL(new Blob([code], { type: "application/javascript" }));
@@ -180,7 +180,7 @@ export class Microphone {
       await context.audioWorklet.addModule(url);
       URL.revokeObjectURL(url);
       const source = context.createMediaStreamSource(stream);
-      const node = new AudioWorkletNode(context, "beryl-mic", { numberOfInputs: 1, numberOfOutputs: 0, channelCount: 1 });
+      const node = new AudioWorkletNode(context, "kestrel-mic", { numberOfInputs: 1, numberOfOutputs: 0, channelCount: 1 });
       const mic = new Microphone(context, stream, node);
       node.port.onmessage = (event: MessageEvent<{ pcm: ArrayBuffer; level: number }>) => {
         mic.level = event.data.level;
@@ -230,7 +230,7 @@ export class Speaker {
       const url = moduleUrl(SPEAKER_WORKLET);
       await context.audioWorklet.addModule(url);
       URL.revokeObjectURL(url);
-      const node = new AudioWorkletNode(context, "beryl-speaker", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1] });
+      const node = new AudioWorkletNode(context, "kestrel-speaker", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1] });
       node.port.onmessage = (event: MessageEvent<{ level: number; played: number; queued: number; idle: boolean }>) => {
         this.level = event.data.level;
         this.played = event.data.played;

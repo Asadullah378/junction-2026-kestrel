@@ -3,7 +3,7 @@ import { APP_NAME } from "@/lib/brand";
 import { siteUrl } from "@/lib/site";
 
 /*
- * How every email from Beryl looks: one column, the name at the top, the content, one button,
+ * How every email from Kestrel looks: one column, the name at the top, the content, one button,
  * a quiet footer. Email programs ignore stylesheets and most modern CSS, so the page is tables
  * and inline styles, and it reads well in a light and a dark inbox alike.
  */

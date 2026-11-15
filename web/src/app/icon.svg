@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- The Beryl mark as the browser tab's icon. The shapes are copied from LOGO in src/lib/brand.ts:
+  <!-- The Kestrel mark as the browser tab's icon. The shapes are copied from LOGO in src/lib/brand.ts:
        change them together. It follows the browser's own light or dark setting. -->
   <style>
     .tile { fill: #004935 }

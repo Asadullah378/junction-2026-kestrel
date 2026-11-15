@@ -19,11 +19,11 @@ const which = process.env.CASE ?? "approval";
 const phase = process.env.PHASE ?? "1";
 const port = process.argv.slice(2).find((a) => /^\d{2,5}$/.test(a)) ?? "3000";
 const base = `http://localhost:${port}`;
-process.env.BERYL_URL = base;
-const shots = process.env.BERYL_TEST_SHOTS;
+process.env.KESTREL_URL = base;
+const shots = process.env.KESTREL_TEST_SHOTS;
 const envFile = path.join(__dirname, "../../.env.local");
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
-const profile = process.env.BERYL_WAITING_PROFILE;
+const profile = process.env.KESTREL_WAITING_PROFILE;
 if (!profile) throw new Error("Run this through `pnpm test:waiting`.");
 fs.mkdirSync(profile, { recursive: true });
 app.setPath("userData", profile);
@@ -68,25 +68,25 @@ const note = (name) => path.join(profile, name);
       runningMark: document.querySelectorAll('[aria-label="This chat is still working"]').length,
       webview: Boolean(document.querySelector('webview')),
       signedIn: vis('textarea[aria-label="Message"]').length > 0,
-      active: localStorage.getItem('hovi.active') }; })()`);
-  const saved = (id) => inHost(`fetch('/api/conversations/${id}', { headers: { 'x-beryl-client': 'desktop' } }).then((r) => r.ok ? r.json() : null)`);
+      active: localStorage.getItem('kestrel.active') }; })()`);
+  const saved = (id) => inHost(`fetch('/api/conversations/${id}', { headers: { 'x-kestrel-client': 'desktop' } }).then((r) => r.ok ? r.json() : null)`);
   const parts = async (id) =>
     ((await saved(id))?.messages?.at(-1)?.parts ?? [])
       .filter((p) => p.type.startsWith("tool-"))
       .map((p) => `${p.type.slice(5)}:${p.state}${p.output?.ok === false ? "(failed)" : ""}${p.output?.status ? `(${p.output.status})` : ""}`);
   const text = async (id) => ((await saved(id))?.messages?.at(-1)?.parts ?? []).filter((p) => p.type === "text").map((p) => p.text).join(" ").replace(/\s+/g, " ");
-  const remove = (id) => inHost(`fetch('/api/conversations/${id}', { method: 'DELETE', headers: { 'x-beryl-client': 'desktop' } }).then(() => 1)`);
+  const remove = (id) => inHost(`fetch('/api/conversations/${id}', { method: 'DELETE', headers: { 'x-kestrel-client': 'desktop' } }).then(() => 1)`);
   const click = (label) => inHost(`(() => { ${V} const b = vis('button').find((x) => x.innerText.trim().includes(${JSON.stringify(label)})); if (b) b.click(); return Boolean(b); })()`);
   const newTask = () => inHost(`(() => { ${V} (vis('button[aria-label="New chat"]')[0] ?? vis('button').find((b) => b.innerText.trim() === 'New chat')).click(); return true; })()`);
   const signIn = async () => {
     await until(() => inHost("(() => { const el = document.querySelector('input[type=email]'); return Boolean(el && Object.keys(el).some((k) => k.startsWith('__reactProps'))); })()"));
     const fill = (sel, value) => inHost(`(() => { const el = document.querySelector(${JSON.stringify(sel)}); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-    await fill("input[type=email]", (process.env.BERYL_TEST_EMAIL || process.env.ADMIN_EMAIL));
-    await fill("input[type=password]", (process.env.BERYL_TEST_PASSWORD || process.env.ADMIN_PASSWORD));
+    await fill("input[type=email]", (process.env.KESTREL_TEST_EMAIL || process.env.ADMIN_EMAIL));
+    await fill("input[type=password]", (process.env.KESTREL_TEST_PASSWORD || process.env.ADMIN_PASSWORD));
     await inHost("document.querySelector('form').requestSubmit(); 1");
     await until(async () => (await state()).signedIn);
     // The quickest mode keeps the test short; a fresh conversation keeps it apart from earlier ones.
-    await inHost("localStorage.removeItem('hovi.active'); localStorage.setItem('hovi.mode', 'fast'); localStorage.setItem('hovi.effort', '1'); location.reload(); 1");
+    await inHost("localStorage.removeItem('kestrel.active'); localStorage.setItem('kestrel.mode', 'fast'); localStorage.setItem('kestrel.effort', '1'); location.reload(); 1");
     await wait(1500);
     await until(async () => (await state()).signedIn);
     await wait(600);
@@ -164,7 +164,7 @@ const note = (name) => path.join(profile, name);
       ok("Done reaches the conversation that is out of sight, and it carries on", Boolean(carried), (await parts(first)).join(", ").slice(-200));
       // Nobody signed in, so it asks again: quit while it is the user's turn.
       ok("it asks again, since nobody signed in", Boolean(await until(async () => (await state()).done > 0 && (await parts(first)).at(-1)?.startsWith("requestUserAction:input-available"), 120000)));
-      await inHost(`localStorage.setItem('hovi.active', ${JSON.stringify(first)}); 1`);
+      await inHost(`localStorage.setItem('kestrel.active', ${JSON.stringify(first)}); 1`);
       await wait(4000);
       console.log("     quitting the app while it is the user's turn");
       end();

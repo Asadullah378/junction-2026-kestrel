@@ -11,8 +11,8 @@ import { runMigrations } from "./migrate";
  */
 
 type State = { attempt?: Promise<string | null>; settled?: boolean; problem?: string | null; at?: number; logged?: string };
-const holder = globalThis as unknown as { __berylStart?: State };
-const state = (holder.__berylStart ??= {});
+const holder = globalThis as unknown as { __kestrelStart?: State };
+const state = (holder.__kestrelStart ??= {});
 const RETRY_MS = 15_000;
 
 /** Null when the database is ready, otherwise one sentence that says what is wrong. Never throws. */

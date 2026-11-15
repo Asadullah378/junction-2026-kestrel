@@ -24,7 +24,7 @@ const envFile = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../.
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 const port = process.argv.slice(2).find((a) => /^\d{2,5}$/.test(a)) ?? "3000";
 const base = `http://localhost:${port}`;
-const EMAIL = "delivered+beryl-jobs-test@resend.dev";
+const EMAIL = "delivered+kestrel-jobs-test@resend.dev";
 const sql = postgres(process.env.DATABASE_URL, { max: 1, onnotice: () => {} });
 
 let failures = 0;
@@ -59,7 +59,7 @@ if (!login.ok) {
   await cleanUp();
   process.exit(1);
 }
-const user = (p, init = {}) => fetch(`${base}${p}`, { ...init, headers: { "content-type": "application/json", cookie, "x-beryl-client": "web", ...(init.headers ?? {}) } });
+const user = (p, init = {}) => fetch(`${base}${p}`, { ...init, headers: { "content-type": "application/json", cookie, "x-kestrel-client": "web", ...(init.headers ?? {}) } });
 const say = async (id, messages) => {
   const res = await user("/api/chat", { method: "POST", body: JSON.stringify({ id, mode: "fast", effort: 1, timeZone: "Europe/Helsinki", place: "Helsinki, Finland", messages }) });
   return res.ok ? await res.text() : `HTTP ${res.status} ${await res.text()}`;

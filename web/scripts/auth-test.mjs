@@ -18,7 +18,7 @@ if (existsSync(sharedEnv)) process.loadEnvFile(sharedEnv);
 
 const port = process.argv[2] ?? "3000";
 const base = `http://localhost:${port}`;
-const COOKIE = "beryl_session";
+const COOKIE = "kestrel_session";
 
 let failed = 0;
 const check = (name, ok, detail = "") => {
@@ -42,7 +42,7 @@ class Client {
     const res = await fetch(base + route, {
       method,
       redirect: "manual",
-      headers: { "x-beryl-client": this.kind, ...(this.cookie ? { cookie: `${COOKIE}=${this.cookie}` } : {}), ...(body === undefined ? {} : { "content-type": "application/json" }) },
+      headers: { "x-kestrel-client": this.kind, ...(this.cookie ? { cookie: `${COOKIE}=${this.cookie}` } : {}), ...(body === undefined ? {} : { "content-type": "application/json" }) },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     for (const line of res.headers.getSetCookie()) {
@@ -89,7 +89,7 @@ try {
   // app, which names itself in its User-Agent, never shows it: there the same request goes to sign in.
   r = await nobody.get("/");
   check("signed out on the web: the front page is the landing page", r.status === 200, `${r.status} ${r.location}`);
-  const fromApp = await fetch(base + "/", { redirect: "manual", headers: { "user-agent": "Mozilla/5.0 BerylDesktop/0.1.0" } });
+  const fromApp = await fetch(base + "/", { redirect: "manual", headers: { "user-agent": "Mozilla/5.0 KestrelDesktop/0.1.0" } });
   check("signed out in the desktop app: it sends you to the sign-in page", fromApp.status >= 300 && fromApp.status < 400 && /\/login/.test(fromApp.headers.get("location") ?? ""), `${fromApp.status} ${fromApp.headers.get("location")}`);
   r = await nobody.get("/admin");
   check("signed out: so does the admin area, and it remembers where you were going", /\/login\?next=%2Fadmin/.test(r.location ?? ""), `${r.status} ${r.location}`);
@@ -106,7 +106,7 @@ try {
   r = await nobody.signIn(adminEmail, `${adminPassword}x`);
   const wrongPassword = r.json?.error;
   check("a wrong password is refused", r.status === 401 && !nobody.cookie, say(r));
-  r = await nobody.signIn(`nobody-${tag}@beryl.test`, secret());
+  r = await nobody.signIn(`nobody-${tag}@kestrel.test`, secret());
   check("an unknown email gets the very same answer", r.status === 401 && r.json?.error === wrongPassword, say(r));
   r = await nobody.post("/api/auth/login", { email: "not an email", password: "" });
   check("nonsense is refused politely", r.status === 400 && typeof r.json?.error === "string", say(r));
@@ -118,8 +118,8 @@ try {
   check("and is recognised afterwards", r.status === 200 && r.json?.user?.email === adminEmail, say(r));
 
   /* Accounts. */
-  const ada = { name: "Ada Test", email: `ada-${tag}@beryl.test`, password: secret() };
-  const bo = { name: "Bo Test", email: `bo-${tag}@beryl.test`, password: secret() };
+  const ada = { name: "Ada Test", email: `ada-${tag}@kestrel.test`, password: secret() };
+  const bo = { name: "Bo Test", email: `bo-${tag}@kestrel.test`, password: secret() };
   for (const person of [ada, bo]) {
     r = await admin.post("/api/admin/users", { ...person, role: "admin", status: "blocked" });
     check(`the admin adds an account (${person.name})`, r.status === 201 && typeof r.json?.id === "string", say(r));
@@ -132,7 +132,7 @@ try {
   check("there is exactly one admin", (r.json?.accounts ?? []).filter((a) => a.role === "admin").length === 1);
   r = await admin.post("/api/admin/users", { ...ada, name: "Again" });
   check("the same email cannot be used twice", r.status === 409, say(r));
-  r = await admin.post("/api/admin/users", { name: "Weak", email: `weak-${tag}@beryl.test`, password: "short" });
+  r = await admin.post("/api/admin/users", { name: "Weak", email: `weak-${tag}@kestrel.test`, password: "short" });
   check("a short password is refused", r.status === 400, say(r));
 
   const adaWeb = new Client("web");
@@ -144,7 +144,7 @@ try {
   /* The admin's routes are the admin's alone. */
   r = await adaWeb.get("/api/admin/users");
   const r2 = await adaWeb.get("/api/admin/overview");
-  const r3 = await adaWeb.post("/api/admin/users", { name: "Sneak", email: `sneak-${tag}@beryl.test`, password: secret() });
+  const r3 = await adaWeb.post("/api/admin/users", { name: "Sneak", email: `sneak-${tag}@kestrel.test`, password: secret() });
   const r4 = await adaWeb.patch(`/api/admin/users/${bo.id}`, { status: "blocked" });
   const r5 = await adaWeb.del(`/api/admin/users/${bo.id}`);
   check("an ordinary account gets 403 on every admin route", [r, r2, r3, r4, r5].every((x) => x.status === 403), [r, r2, r3, r4, r5].map((x) => x.status).join(" "));
@@ -191,12 +191,12 @@ try {
   who = await meOf(adaWeb);
   check("the admin removes the limit", r.status === 200 && (await inList(ada.id))?.usageCapUsd === null && who?.usageCapUsd === null, say(r));
 
-  const cy = { name: "Cy Test", email: `cy-${tag}@beryl.test`, password: secret(), modes: ["smart", "ultrafast"], showUsage: true, usageCapUsd: 2.5 };
+  const cy = { name: "Cy Test", email: `cy-${tag}@kestrel.test`, password: secret(), modes: ["smart", "ultrafast"], showUsage: true, usageCapUsd: 2.5 };
   r = await admin.post("/api/admin/users", cy);
   if (r.json?.id) made.push(r.json.id);
   const cyListed = await inList(r.json?.id);
   check("an account can be added with its modes, usage in view and a limit", r.status === 201 && same(cyListed?.modes, ["ultrafast", "smart"]) && cyListed?.showUsage === true && cyListed?.usageCapUsd === 2.5, JSON.stringify(cyListed ?? say(r)));
-  r = await admin.post("/api/admin/users", { name: "No Modes", email: `none-${tag}@beryl.test`, password: secret(), modes: [] });
+  r = await admin.post("/api/admin/users", { name: "No Modes", email: `none-${tag}@kestrel.test`, password: secret(), modes: [] });
   check("but not with no mode at all", r.status === 400, say(r));
 
   r = await adaWeb.get(`/api/admin/users/${bo.id}/usage`);
@@ -293,7 +293,7 @@ try {
   check("nor are the admin's modes, usage or limit: they are fixed", fixed.every((status) => status === 400) && same(who?.modes, ALL_MODES) && who?.showUsage === true && who?.usageCapUsd === null, fixed.join(" "));
 
   /* Too many wrong passwords. */
-  const guessed = `guess-${tag}@beryl.test`;
+  const guessed = `guess-${tag}@kestrel.test`;
   let last;
   for (let i = 0; i < 7; i++) last = await new Client().signIn(guessed, secret());
   check("repeated wrong passwords are slowed down", last.status === 429, say(last));

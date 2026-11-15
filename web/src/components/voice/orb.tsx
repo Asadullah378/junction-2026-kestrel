@@ -7,7 +7,7 @@ import type { CallStatus } from "@/lib/voice/live-call";
 import { liveCall } from "@/lib/voice/use-call";
 
 /**
- * The call's face: the Beryl stone, alive. It breathes while it listens, a ring widens with the
+ * The call's face: the Kestrel stone, alive. It breathes while it listens, a ring widens with the
  * user's voice, its facets catch the light in turn while it works, and it swells with its own
  * voice while it speaks. The sound levels are read straight from the audio, sixty times a second,
  * and written to CSS variables: nothing here goes through React while it moves.

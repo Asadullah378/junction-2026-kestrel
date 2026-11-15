@@ -10,8 +10,8 @@ import type { ExactLocation } from "@/lib/widgets/types";
  * and sent with messages so searches and maps can use it. Nothing is stored on a server.
  */
 
-const KEY = "hovi.location";
-const DECLINED_KEY = "hovi.location.declined";
+const KEY = "kestrel.location";
+const DECLINED_KEY = "kestrel.location.declined";
 
 export type PermissionState = "granted" | "prompt" | "denied" | "unsupported";
 

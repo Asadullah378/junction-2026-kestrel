@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  *   /download/mac-arm64   /download/mac-x64   /download/windows-x64   the files
  *   /download/manifest                                                  what was built: version, sizes, checksums
  *
- * Where the files are: if BERYL_DOWNLOADS_URL is set (a public bucket, say), the visitor is sent
+ * Where the files are: if KESTREL_DOWNLOADS_URL is set (a public bucket, say), the visitor is sent
  * on to `<that address>/<file name>`. Otherwise they are served from this server's own
  * desktop/release/downloads/, where `pnpm desktop:release` puts them.
  *
@@ -28,7 +28,7 @@ const plain = (status: number, text: string) => new Response(text, { status, hea
 
 /** The public address the files are kept at, if there is one: an http(s) address without a trailing slash. */
 function elsewhere(): string | null {
-  const base = process.env.BERYL_DOWNLOADS_URL?.trim().replace(/\/+$/, "");
+  const base = process.env.KESTREL_DOWNLOADS_URL?.trim().replace(/\/+$/, "");
   return base && /^https?:\/\/[^\s]+$/i.test(base) ? base : null;
 }
 

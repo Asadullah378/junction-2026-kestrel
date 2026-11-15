@@ -8,7 +8,7 @@ import type { CustomBlock } from "@/lib/widgets/types";
  * - `sandbox="allow-scripts"` only: the frame has an opaque origin and cannot reach the app.
  * - A CSP meta tag blocks every network request (images from https and data: excepted).
  * - The app's design tokens are copied in, so a fragment looks native without restyling.
- * - A tiny bridge (`window.hovi`) lets the fragment ask the agent, open a link or copy text,
+ * - A tiny bridge (`window.kestrel`) lets the fragment ask the agent, open a link or copy text,
  *   and reports its height so the frame fits its content.
  */
 
@@ -98,8 +98,8 @@ tr:last-child td { border-bottom: 0; }
 
 const BRIDGE = `
 (function () {
-  function post(type, value) { try { parent.postMessage({ __hovi: true, type: type, value: value }, "*"); } catch (e) {} }
-  window.hovi = {
+  function post(type, value) { try { parent.postMessage({ __kestrel: true, type: type, value: value }, "*"); } catch (e) {} }
+  window.kestrel = {
     ask: function (text) { post("ask", String(text == null ? "" : text)); },
     open: function (url) { post("open", String(url == null ? "" : url)); },
     copy: function (text) { post("copy", String(text == null ? "" : text)); }
@@ -119,7 +119,7 @@ const BRIDGE = `
 `;
 
 function buildDoc(fragment: string, tokens: string, dark: boolean): string {
-  // The bridge runs before the fragment, so `hovi` exists when the fragment's own scripts run.
+  // The bridge runs before the fragment, so `kestrel` exists when the fragment's own scripts run.
   return `<!doctype html><html><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${CSP}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -177,8 +177,8 @@ export function CustomHtml({
     function onMessage(event: MessageEvent) {
       const win = frameRef.current?.contentWindow;
       if (!win || event.source !== win) return;
-      const msg = event.data as { __hovi?: boolean; type?: string; value?: unknown } | null;
-      if (!msg || typeof msg !== "object" || msg.__hovi !== true) return;
+      const msg = event.data as { __kestrel?: boolean; type?: string; value?: unknown } | null;
+      if (!msg || typeof msg !== "object" || msg.__kestrel !== true) return;
       if (msg.type === "height") {
         const h = Number(msg.value);
         if (Number.isFinite(h)) setHeight(clampHeight(h));

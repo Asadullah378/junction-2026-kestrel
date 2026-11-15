@@ -4,7 +4,7 @@
  *
  * In the app a notification is always shown. An email is sent only when the account's settings
  * allow it and, for chats and the live browser, only when the user is away: someone who has
- * Beryl open in front of them sees the notice there and needs no email about it. A job's result
+ * Kestrel open in front of them sees the notice there and needs no email about it. A job's result
  * is the exception, because the email is what the job is for.
  */
 
@@ -32,7 +32,7 @@ export type NotifyPrefs = {
   browser: boolean;
   /** When a job has run: its result, or why it could not run. */
   jobs: boolean;
-  /** Hold back emails about chats and the browser while the user has Beryl open. Job results are sent either way. */
+  /** Hold back emails about chats and the browser while the user has Kestrel open. Job results are sent either way. */
   quietWhenHere: boolean;
 };
 

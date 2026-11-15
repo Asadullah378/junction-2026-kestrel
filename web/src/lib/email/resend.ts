@@ -3,18 +3,18 @@ import "server-only";
 /*
  * Sending email, through Resend (https://resend.com/docs/api-reference/emails/send-email).
  * One plain HTTP call, so the request is explicit and nothing else is pulled in. The sender has
- * to be an address on a domain verified at Resend; ours is beryl.zeroanomaly.tech.
+ * to be an address on a domain verified at Resend; ours is beryl.zeroanomaly.tech, the team's first project, until one for Kestrel is verified.
  */
 
 const ENDPOINT = "https://api.resend.com/emails";
-const DEFAULT_FROM = "Beryl <notifications@beryl.zeroanomaly.tech>";
+const DEFAULT_FROM = "Kestrel <notifications@beryl.zeroanomaly.tech>";
 
 export type EmailResult = { ok: true; id: string } | { ok: false; reason: string };
 
 /** True when the server has a key to send with. Without one, nothing is sent and nothing breaks. */
 export const emailConfigured = (): boolean => Boolean(process.env.RESEND_API_KEY?.trim());
 
-/** An address worth sending to: a made-up local one (admin@beryl.local) would only bounce. */
+/** An address worth sending to: a made-up local one (admin@kestrel.local) would only bounce. */
 export function deliverable(address: string | null | undefined): address is string {
   if (!address) return false;
   const match = /^[^\s@]+@([^\s@]+\.[a-z]{2,})$/i.exec(address.trim());
@@ -38,7 +38,7 @@ export async function sendEmail(input: { to: string; subject: string; html: stri
         ...(input.key ? { "idempotency-key": input.key.slice(0, 256) } : {}),
       },
       body: JSON.stringify({
-        from: process.env.BERYL_EMAIL_FROM?.trim() || DEFAULT_FROM,
+        from: process.env.KESTREL_EMAIL_FROM?.trim() || DEFAULT_FROM,
         to: [input.to.trim()],
         subject: input.subject.replace(/\s+/g, " ").trim().slice(0, 200),
         html: input.html,
