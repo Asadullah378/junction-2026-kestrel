@@ -80,10 +80,10 @@ Each of these starts a new revision, so the same warning about running chats app
 - **15 Nov, 04:49.** Third deploy: revision `kestrel-00003-9j7`, image `web:live-1115-0505` (built at 04:42), commit `6bea118`. It carries the price picker's fixes for countries outside the euro. The service's log showed no one signed in before it went out. The same checks as above passed afterwards. Before the build, on this computer: the type check, the lint, `test:diff`, `test:offers` (38), `test:guard` (41), `test:watch` (all passed), and real questions through the app (prices in eight countries, a sift of 40 pages).
 
 - **15 Nov, 06:19.** The site's address is the domain: `KESTREL_SITE_URL=https://kestrel.zeroanomaly.tech`, revision `kestrel-00004-pst`, the same image (`web:live-1115-0505`). Asadullah said to restart; the log showed nobody signed in. From here on a watch's monitors call the webhook on the domain, and links in emails point there. The same signed-out checks passed afterwards on the `run.app` address, which keeps working. At 06:20 the certificate was still being issued (`kestrel-cert-2`, made at 06:12), so the domain itself did not answer over https yet.
+- **15 Nov, 06:52.** The domain answers. `kestrel-cert-2` went `ACTIVE` at 06:51, 39 minutes after it was made, and `https://kestrel.zeroanomaly.tech` answered a minute later. Checked signed out, on the domain: `/api/health` all set; `/`, `/login`, `/dev/shop` and the film's poster answer 200; `/watches` sends a visitor to sign in; the API answers 401; the webhook refuses an unsigned call with 400; http redirects to https. A watch made on the live site now registers monitors that call the domain.
 
 ## Still to do
 
-- Until a certificate is `ACTIVE`, do not make a watch on the live site: its monitors would call the domain, which does not answer yet.
 - A delivery from a real monitor to the live webhook has still not been seen. Sign in, make a watch on `/dev/shop`, change the price at `/dev/shop-admin`, and wait for the monitor's next look (up to ten minutes) or press "Check now".
 
 ## Shutting it down
