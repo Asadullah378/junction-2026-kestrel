@@ -14,7 +14,7 @@ Set up on Sunday 15 November 2026 in the Google Cloud project `kestrel-contextde
 | Secrets | Secret Manager | `DATABASE_URL`, `CONTEXT_DEV_API_KEY`, `OXYLABS_WEB_API_KEY`, `ANTHROPIC_AWS_API_KEY`, `ANTHROPIC_AWS_WORKSPACE_ID`, `GOOGLE_API_KEY`, `ADMIN_PASSWORD`, `RESEND_API_KEY`. |
 | Images | Artifact Registry `kestrel` | `europe-north1-docker.pkg.dev/kestrel-contextdev/kestrel/web` |
 | The film | Bucket `gs://kestrel-contextdev-media` | Public. The landing page plays the film from here. |
-| Domain and HTTPS | Global load balancer | Address `kestrel-ip` (`136.81.31.251`), a Google-managed certificate `kestrel-cert` for `kestrel.zeroanomaly.tech`, and a redirect from http to https. |
+| Domain and HTTPS | Global load balancer | Address `kestrel-ip` (`136.81.31.251`), two Google-managed certificates for `kestrel.zeroanomaly.tech` on the proxy `kestrel-https` (`kestrel-cert` and `kestrel-cert-2`, see below), and a redirect from http to https. |
 | Account | `kestrel-run` | What the server runs as: it may read the secrets and reach the database, nothing else. |
 
 ## The one DNS record
@@ -25,11 +25,22 @@ At the registrar of `zeroanomaly.tech`:
 |---|---|---|---|
 | A | `kestrel` | `136.81.31.251` | 300 (or the lowest offered) |
 
-Once the record resolves, Google issues the certificate on its own, usually within 15 to 60 minutes. Until then `https://kestrel.zeroanomaly.tech` shows a certificate error and the service's own `run.app` address is the one to use. Check progress with:
+The record was added on 15 Nov at about 06:10 and resolved at once on the zone's four name servers and on the public resolvers.
+
+Once the record resolves, Google issues the certificate on its own, usually within 15 to 60 minutes. Until then `https://kestrel.zeroanomaly.tech` refuses the connection and the service's own `run.app` address is the one to use. Check progress with:
 
 ```bash
-gcloud compute ssl-certificates describe kestrel-cert --project kestrel-contextdev --global --format="value(managed.status,managed.domainStatus)"
+gcloud compute ssl-certificates list --project kestrel-contextdev --global --format="value(name,managed.status,managed.domainStatus)"
 ```
+
+A certificate made before its record exists can get stuck. `kestrel-cert` was made at 02:42, three and a half hours before the record, and still said `FAILED_NOT_VISIBLE` after the record resolved. A second one made after the record starts its checks at once, and the proxy can carry both:
+
+```bash
+gcloud compute ssl-certificates create kestrel-cert-2 --project kestrel-contextdev --global --domains kestrel.zeroanomaly.tech
+gcloud compute target-https-proxies update kestrel-https --project kestrel-contextdev --global --ssl-certificates kestrel-cert,kestrel-cert-2
+```
+
+Neither command restarts the server.
 
 ## Deploying
 
@@ -68,9 +79,11 @@ Each of these starts a new revision, so the same warning about running chats app
 - **15 Nov, 04:20.** Second deploy: revision `kestrel-00002-d4s`, image `web:live-1115-0418`, commit `55196a8`. It carries the Sift fix for slow page reads, the clean-up, and the film: `kestrel-draft-2.mp4` is in the bucket as `kestrel-demo.mp4` and `KESTREL_DEMO_VIDEO` points at it. Before it went out the service's log showed no one signed in and no chat running for 45 minutes. Checked signed out afterwards: `/api/health` all set; `/`, `/login`, `/dev/shop` and the film's poster answer 200; `/watches` sends a visitor to sign in; the API answers 401; the webhook refuses an unsigned call with 400; the film plays on the landing page.
 - **15 Nov, 04:49.** Third deploy: revision `kestrel-00003-9j7`, image `web:live-1115-0505` (built at 04:42), commit `6bea118`. It carries the price picker's fixes for countries outside the euro. The service's log showed no one signed in before it went out. The same checks as above passed afterwards. Before the build, on this computer: the type check, the lint, `test:diff`, `test:offers` (38), `test:guard` (41), `test:watch` (all passed), and real questions through the app (prices in eight countries, a sift of 40 pages).
 
+- **15 Nov, 06:19.** The site's address is the domain: `KESTREL_SITE_URL=https://kestrel.zeroanomaly.tech`, revision `kestrel-00004-pst`, the same image (`web:live-1115-0505`). Asadullah said to restart; the log showed nobody signed in. From here on a watch's monitors call the webhook on the domain, and links in emails point there. The same signed-out checks passed afterwards on the `run.app` address, which keeps working. At 06:20 the certificate was still being issued (`kestrel-cert-2`, made at 06:12), so the domain itself did not answer over https yet.
+
 ## Still to do
 
-- When `kestrel.zeroanomaly.tech` resolves and the certificate is active, point the site at it: `gcloud run services update kestrel --project kestrel-contextdev --region europe-north1 --update-env-vars KESTREL_SITE_URL=https://kestrel.zeroanomaly.tech`. Monitors registered before that keep calling the `run.app` address, which keeps working.
+- Until a certificate is `ACTIVE`, do not make a watch on the live site: its monitors would call the domain, which does not answer yet.
 - A delivery from a real monitor to the live webhook has still not been seen. Sign in, make a watch on `/dev/shop`, change the price at `/dev/shop-admin`, and wait for the monitor's next look (up to ten minutes) or press "Check now".
 
 ## Shutting it down
