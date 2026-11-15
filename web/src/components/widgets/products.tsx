@@ -6,6 +6,7 @@ import { ArrowUpRight, Columns3, LayoutGrid, Package, ShoppingBag, Sparkles, Sta
 import { cn } from "@/lib/utils";
 import type { Product, ProductsData, WidgetProps } from "@/lib/widgets/types";
 import { Shimmer, WidgetError, WidgetFrame, formatMoney } from "@/components/widgets/frame";
+import { WatchThis } from "@/components/jobs/watch-this";
 
 type View = "cards" | "compare";
 type SortKey = "match" | "price" | "rating";
@@ -34,7 +35,9 @@ export function Products({ data, loading }: WidgetProps<ProductsData>) {
 
   const subtitle =
     products.length > 0
-      ? `${products.length} ${products.length === 1 ? "product" : "products"} · ${merchants} ${merchants === 1 ? "shop" : "shops"}`
+      ? data?.watchSpec
+        ? `The cheapest in ${products.length} ${products.length === 1 ? "country" : "countries"} · ${merchants} ${merchants === 1 ? "shop" : "shops"}`
+        : `${products.length} ${products.length === 1 ? "product" : "products"} · ${merchants} ${merchants === 1 ? "shop" : "shops"}`
       : undefined;
 
   const showSkeleton = loading && products.length === 0;
@@ -47,7 +50,9 @@ export function Products({ data, loading }: WidgetProps<ProductsData>) {
       loading={loading}
       stage={data?.stage}
       sources={data?.sources}
-      footerNote={products.length > 0 ? "Prices and stock as listed by each shop" : undefined}
+      // Keep looking at these prices, and tell me when one moves.
+      aside={data?.watchSpec && !loading && !data.error ? <WatchThis title={`${data.query} price`} spec={data.watchSpec} /> : undefined}
+      footerNote={products.length > 0 ? "Prices as each shop listed them just now. Shipping and tax across borders are not included." : undefined}
     >
       {data?.error ? (
         <WidgetError message={data.error} />

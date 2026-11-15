@@ -85,8 +85,9 @@ export function Sift({ data, loading }: WidgetProps<SiftData>) {
   }, [kept, shown, judged, count]);
 
   const seconds = data.judgedMs ? (data.judgedMs / 1000).toFixed(1) : null;
+  const readSeconds = data.searchMs ? (data.searchMs / 1000).toFixed(1) : null;
   // Short enough to fit beside the count on a phone: the wishes are the columns, they need no counting.
-  const subtitle = judged ? `Checked ${data.checked} pages${seconds ? ` in ${seconds} s` : ""}` : items.length > 0 ? `${items.length} pages found` : undefined;
+  const subtitle = judged ? (readSeconds && seconds ? `Read ${data.checked} pages in ${readSeconds} s, checked in ${seconds} s` : `Checked ${data.checked} pages${seconds ? ` in ${seconds} s` : ""}`) : items.length > 0 ? `${items.length} pages found` : undefined;
   const footerNote = judged ? [data.judgements ? `${data.judgements} checks` : null, data.skipped ? `${data.skipped} left out` : null].filter(Boolean).join(" · ") : undefined;
 
   const aside =
