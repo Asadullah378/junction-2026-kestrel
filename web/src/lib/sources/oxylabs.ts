@@ -166,8 +166,8 @@ export async function oxyShopping(
       url: absolute(typeof o.merchant === "object" && o.merchant?.url ? o.merchant.url : o.url),
       rating: typeof o.rating === "number" ? o.rating : null,
       reviews: typeof o.reviews_count === "number" ? o.reviews_count : null,
-      // Thumbnails arrive as inline image data: far too large to keep with every offer.
-      image: o.thumbnail && /^https?:\/\//.test(o.thumbnail) ? o.thumbnail : null,
+      // Thumbnails arrive as a link or as small inline image data. A big inline one is left out: it would travel with every offer.
+      image: o.thumbnail && (/^https?:\/\//.test(o.thumbnail) || (/^data:image\//.test(o.thumbnail) && o.thumbnail.length < 14_000)) ? o.thumbnail : null,
       position: o.pos ?? i + 1,
     }));
   const out = { offers, pageUrl: json?.url ?? res.results?.[0]?.metadata?.url ?? null, ms: Date.now() - started };
