@@ -221,6 +221,7 @@ function verdictFor(found: CountryPrices[], home: string | undefined, currency: 
     parts.push(`From ${countryName(own.country)} the cheapest is ${money(own.best!.price, own.best!.currency)}, ${money(own.best!.price - cheapest.best!.price, own.best!.currency)} more.`);
   }
   if (missing.length) parts.push(`Nothing matching was found from ${missing.join(", ")}.`);
-  parts.push(`${found.length} ${found.length === 1 ? "country" : "countries"} checked in ${(ms / 1000).toFixed(1)} s. Shipping and tax across borders are not included.`);
+  // An answer that came from the few-minute cache took no time worth stating.
+  parts.push(`${found.length} ${found.length === 1 ? "country" : "countries"} checked${ms >= 300 ? ` in ${(ms / 1000).toFixed(1)} s` : ""}. Shipping and tax across borders are not included.`);
   return parts.join(" ");
 }
