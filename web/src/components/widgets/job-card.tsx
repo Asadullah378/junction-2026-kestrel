@@ -14,12 +14,12 @@ import { WidgetError, WidgetFrame } from "./frame";
 /*
  * A job in the chat: what the agent just set up, changed, listed or deleted. The card says when
  * the job really runs (the next few times, in the job's own time zone), and offers the two
- * things worth doing from here: try it now, and open it on the Jobs page.
+ * things worth doing from here: try it now, and open it on the Watches page.
  */
 
 const when = (at: number, timeZone: string) => new Date(at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone });
 
-const hrefOf = (job: JobItem) => `/jobs?job=${encodeURIComponent(job.id)}`;
+const hrefOf = (job: JobItem) => `/watches?job=${encodeURIComponent(job.id)}`;
 
 /** "Europe/Helsinki" as "Helsinki time", said only when it is not the zone this browser is in. */
 function zoneNote(timeZone: string): string {
@@ -49,7 +49,7 @@ function StatusChip({ job }: { job: JobItem }) {
   );
 }
 
-/** Run the job once, right away. The result comes by email and shows on the Jobs page. */
+/** Run the job once, right away. The result comes by email and shows on the Watches page. */
 function RunNow({ job }: { job: JobItem }) {
   const [state, setState] = React.useState<"idle" | "starting" | "started">("idle");
   const run = async () => {
@@ -58,7 +58,7 @@ function RunNow({ job }: { job: JobItem }) {
       const response = await api(`/api/jobs/${encodeURIComponent(job.id)}/run`, { method: "POST" });
       if (response.ok) {
         setState("started");
-        toast.success("Running now", { description: "The result will be in your inbox and on the Jobs page." });
+        toast.success("Running now", { description: "The result will be in your inbox and on the Watches page." });
         return;
       }
       const body = (await response.json().catch(() => ({}))) as { error?: string };
