@@ -1,0 +1,27 @@
+# Secrets and local settings. Only .env.example is in the repository.
+.env*
+!.env.example
+
+node_modules/
+.next/
+.vercel/
+dist/
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.claude/settings.local.json
+.claude/worktrees/
+.claude/launch.json
+
+# The demo film's Remotion project: built and rendered on one machine, not part of the repository.
+video/
+
+# Agent skills installed for making the film (Remotion, Hyperframes). Put back with:
+#   npx skills add remotion-dev/skills --agent claude-code --yes
+#   npx skills add heygen-com/hyperframes --agent claude-code --yes
+.claude/skills/
+skills-lock.json
+
+# A local copy of the demo film for the landing page (KESTREL_DEMO_VIDEO=/landing/demo.mp4).
+web/public/landing/demo.mp4
+web/public/maplibre-gl-worker.mjs
