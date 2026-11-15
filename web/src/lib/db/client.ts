@@ -15,7 +15,7 @@ const store = (holder.__kestrelDb ??= {});
 /** The database is not configured or cannot be reached. `message` is a sentence fit to show. */
 export class DatabaseUnavailable extends Error {}
 
-export const NO_DATABASE_URL = "No database is set up. Add DATABASE_URL to exa/.env.local (see .env.example) and restart.";
+export const NO_DATABASE_URL = "No database is set up. Add DATABASE_URL to the root .env.local (see .env.example) and restart.";
 
 /** The database, opened on first use. Throws DatabaseUnavailable when DATABASE_URL is missing. */
 export function database(): PostgresJsDatabase<typeof schema> {

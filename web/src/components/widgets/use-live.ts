@@ -185,24 +185,3 @@ export function formatUpdated(updatedAt: number, now: number): string {
   if (m < 60) return `Updated ${m}m ago`;
   return `Updated ${Math.floor(m / 60)}h ago`;
 }
-
-/**
- * Tracks a number and reports the direction of its last change, with a counter that
- * increases on every change so animations keyed on it replay.
- */
-export function useChangeFlash(value: number | undefined, durationMs = 900) {
-  const [prev, setPrev] = React.useState(value);
-  const [flash, setFlash] = React.useState<{ dir: "up" | "down" | null; n: number }>({ dir: null, n: 0 });
-  if (value !== prev) {
-    setPrev(value);
-    if (value !== undefined && prev !== undefined && Number.isFinite(value) && Number.isFinite(prev)) {
-      setFlash((f) => ({ dir: value > prev ? "up" : "down", n: f.n + 1 }));
-    }
-  }
-  React.useEffect(() => {
-    if (!flash.dir) return;
-    const t = setTimeout(() => setFlash((f) => ({ ...f, dir: null })), durationMs);
-    return () => clearTimeout(t);
-  }, [flash.n, flash.dir, durationMs]);
-  return flash;
-}

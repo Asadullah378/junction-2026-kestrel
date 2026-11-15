@@ -31,7 +31,7 @@ export function sumUsage(all: Array<RunStats | undefined>): UsageSummary | null 
  * It is sized to the chat column, not to the window: beside the live browser the column can be
  * 380 pixels wide on a large screen, and on a phone it is the whole screen. Nothing wraps and
  * nothing overlaps. The name takes whatever room is left and is cut with an ellipsis. As the
- * column narrows, things step out in this order: the Exa count, the token count, the "New chat"
+ * column narrows, things step out in this order: the web call count, the token count, the "New chat"
  * label, the product's name beside the logo (the conversation's name matters more), and under
  * 420 pixels the "New chat" button itself (the logo starts a new chat too). The logo, the
  * cost, the bell, the theme switch, the account badge and the list button always stay.

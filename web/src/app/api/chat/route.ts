@@ -41,7 +41,7 @@ type ChatRequest = {
   effort?: number;
   /** "Espoo, Finland": where the user is, for local questions. */
   place?: string;
-  /** Two-letter country code, used to localise Exa searches. */
+  /** Two-letter country code: searches and page reads are run as someone in that country would see them. */
   country?: string;
   timeZone?: string;
   /** The user's exact position, when they have shared it through the browser. */

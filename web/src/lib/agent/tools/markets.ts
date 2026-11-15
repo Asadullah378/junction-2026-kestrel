@@ -8,7 +8,7 @@ import { clip, errorMessage, type ToolContext } from "./context";
 
 /* ───────────────────────── Prediction markets ─────────────────────────
  * Odds and price history come from Polymarket's public API, so the chart is instant and can
- * refresh live. Exa then finds this week's reporting on the question, so the agent can say
+ * refresh live. Context.dev's news search (`liveNews`) then finds this week's reporting on the question, so the agent can say
  * why the odds moved and cite it.
  */
 

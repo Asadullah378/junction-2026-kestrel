@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig } from "drizzle-kit";
 
-// The database address lives with the other keys, one level up in exa/.env.local.
+// The database address lives with the other keys, one level up, in the repository's .env.local.
 const sharedEnv = resolve(process.cwd(), "../.env.local");
 if (!process.env.DATABASE_URL && existsSync(sharedEnv)) process.loadEnvFile(sharedEnv);
 

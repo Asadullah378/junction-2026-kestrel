@@ -14,7 +14,8 @@ const wishes: SiftData["wishes"] = [
   { label: "One pan", test: "the recipe is cooked in a single pan or pot" },
 ];
 
-// A real run: 40 recipe pages from Exa, checked by the decision model on 14 November 2026.
+// A recorded run from 14 November 2026, made before search moved to Context.dev: 40 recipe pages,
+// checked by the decision model.
 const items: SiftItem[] = [
   page("20-Minute Chickpea Soup", "https://www.eatingwell.com/20-minute-chickpea-soup-11816278", [["yes", 0.99], ["yes", 0.91], ["yes", 0.97], ["yes", 0.99]], "2026-10-02"),
   page("Marry Me Chickpeas (Easy 20 Minute Dinner) - Cooking With Ayeh", "https://cookingwithayeh.com/marry-me-chickpeas/", [["yes", 0.99], ["yes", 0.96], ["yes", 0.61], ["yes", 1]]),

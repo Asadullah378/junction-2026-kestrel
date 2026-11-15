@@ -32,7 +32,7 @@ export type RunStats = {
   /** Tokens and cost of sub-agents and helper calls made inside tools. */
   workerUsage?: TokenUsage;
   workerCostUsd?: number;
-  /** Exa spend and call counts. */
+  /** Web data spend (Context.dev credits; Oxylabs calls are counted at no cost) and call counts. */
   webCostUsd?: number;
   webCalls?: WebCalls;
   /** What checking pages against wishes cost (the decision model behind sift), and how many requests it took. */

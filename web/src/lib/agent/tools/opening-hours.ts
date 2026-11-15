@@ -2,9 +2,9 @@ import tzlookup from "tz-lookup";
 import type { Place } from "@/lib/widgets/types";
 
 /*
- * Is a place open right now? Exa's place records carry opening hours as text per weekday
- * ("11 AM–9 PM", "3–10 PM", "Open 24 hours", "Closed") and a status that only says whether the
- * business still exists. This works out the current moment in the place's own time zone (looked
+ * Is a place open right now? Places read from Google Maps (through Context.dev's Maps parser, see
+ * places.ts) carry opening hours as text per weekday ("11 AM–9 PM", "3–10 PM", "Open 24 hours",
+ * "Closed"), not whether the place is open now. This works out the current moment in the place's own time zone (looked
  * up from its coordinates, so a search for London from Helsinki is still right) and checks it
  * against today's hours.
  */

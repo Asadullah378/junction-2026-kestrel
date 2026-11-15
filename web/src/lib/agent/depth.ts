@@ -13,9 +13,12 @@
  *   Deeper      6 + 3       92        681            239           ~1,300 words  2 min   $1.05
  *   Exhaustive  12 + 4      137       988            480           ~1,750 words  2.5 min $1.50
  *
- * Cost is Exa (about a tenth of a cent per page checked), the sub-agents, the decision model and
- * the report; roughly two thirds of it is Exa. The time budgets below are ceilings, not targets:
- * they leave room, inside the route's 300 seconds, for the main agent's own steps and the report.
+ * Measured before web data moved to Context.dev, so today's times and costs differ. Cost is the
+ * web data (Context.dev charges credits per search and per page whose text it returns; see
+ * lib/sources/contextdev.ts), the sub-agents, the decision model and the report.
+ *
+ * The time budgets below are ceilings, not targets: they leave room, inside the route's 300
+ * seconds, for the main agent's own steps and the report.
  *
  * Shared by the server and the browser (the interface only uses the label): no imports but types.
  */
@@ -43,7 +46,7 @@ export type ResearchDepth = {
   searchesPerAgent: string;
   /** How much reading it is told to do, in words for its instructions. */
   readsPerAgent: string;
-  /** Results asked of Exa per search. Ten is the most a search returns at its base price. */
+  /** Results asked of Context.dev per search. It charges one credit per ten results, plus one per page whose text is returned. */
   resultsPerSearch: number;
   /** The most pages one search call hands back to the sub-agent, after the ones that do not bear on its angle are dropped. */
   passagesPerSearch: number;

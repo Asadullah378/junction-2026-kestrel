@@ -1,5 +1,5 @@
-// Smoke test for the model providers. Run from exa/web: node scripts/smoke.mjs
-// Reads keys from exa/.env.local. Prints results and timings, never the keys.
+// Smoke test for the model providers. Run from web/: node scripts/smoke.mjs
+// Reads keys from the root .env.local. Prints results and timings, never the keys.
 import { generateText, streamText, tool, isStepCount, Output } from "ai";
 import { createAnthropicAws } from "@ai-sdk/anthropic-aws";
 import { createAnthropic } from "@ai-sdk/anthropic";

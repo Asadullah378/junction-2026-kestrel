@@ -117,7 +117,7 @@ export const conversations = pgTable(
  * null), so past spend still adds up after an account is deleted.
  *
  * The cost of a row falls into four kinds: LLMs (`llm_cost_usd` of a typed request, and
- * `worker_cost_usd` of any row), Exa (`web_cost_usd`), voice (`llm_cost_usd` of a voice row) and
+ * `worker_cost_usd` of any row), web data (`web_cost_usd`), voice (`llm_cost_usd` of a voice row) and
  * decisions (`decision_cost_usd`). The total is the four columns added up.
  */
 export const usageEvents = pgTable(

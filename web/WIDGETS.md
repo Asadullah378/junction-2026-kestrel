@@ -1,6 +1,30 @@
 # Building widgets
 
-A widget is a React component that renders one tool result from the agent: a map of places, a flight list, a stock chart. The product is judged on how professional, live and responsive these feel, so each one should look like it shipped from a design-led company (think Linear, Arc, Perplexity, Airbnb), not like a hackathon card.
+A widget is a React component that renders one tool result from the agent: a map of places, prices by country, a sift of pages checked against wishes. The product is judged on how professional, live and responsive these feel, so each one should look like it shipped from a design-led company (think Linear, Arc, Perplexity, Airbnb), not like a hackathon card.
+
+## The widgets there are
+
+Each lives in `src/components/widgets/` and is picked by tool name in `src/components/butler/tool-part.tsx`.
+
+| Widget | File | Rendered for |
+|---|---|---|
+| `PlacesMap` | `places-map.tsx` | `findPlaces` |
+| `Products` | `products.tsx` | `comparePrices` |
+| `Sift` | `sift.tsx` | `sift` |
+| `PredictionMarket` | `market.tsx` | `getPredictionMarket` |
+| `Weather` | `weather.tsx` | `getWeather` |
+| `Research` | `research.tsx` | `deepResearch` |
+| `JobCard` | `job-card.tsx` | `createJob`, `updateJob`, `listJobs`, `deleteJob` |
+| `Custom` | `custom.tsx` (with `custom-chart.tsx`, `custom-html.tsx`) | `showWidget` |
+| `Comparison` | `comparison.tsx` | `showComparison` |
+| `KeyFacts` | `facts.tsx` | `showKeyFacts` |
+| `Actions` | `actions.tsx` | `showActions` |
+| `Plan` | `plan.tsx` | `updatePlan` (drawn above the answer in `message.tsx`) |
+| `Clarify` | `clarify.tsx` | `askUser` |
+| `LocationRequest` | `location-request.tsx` | `requestLocation` |
+| `UserAction` | `user-action.tsx` | `requestUserAction` (desktop only, not offered on the web) |
+
+Shared pieces: `frame.tsx` (the frame and source chips), `use-live.ts` (polling while a widget is on screen), `chart-parts.tsx` (chart loading shape, tooltip, animated number, time ticks). Every widget with a fixture is on `/dev/widgets`; the landing page (`src/components/landing/live.tsx`) shows a few with their fixtures too.
 
 ## Read first
 
@@ -25,10 +49,10 @@ export function PlacesMap({ data, loading }: WidgetProps<PlacesData>) { ... }
 - Always pass `data.sources` to `WidgetFrame` so the reader can see where the data came from. This is a judging criterion.
 - Also write `src/lib/widgets/fixtures/<widget-file-name>.ts` exporting two typed constants: a realistic, fully populated sample (real-looking names, Helsinki/Finland or well-known global examples, working image URLs from a stable public host such as images.unsplash.com or upload.wikimedia.org) and a loading sample (`stage` set, little or no data). Name them `<name>Fixture` and `<name>LoadingFixture`. A gallery page imports these.
 
-## Design system ("Concierge")
+## Design system ("Lookout")
 
 - **Colour:** only tokens, never hex. Surfaces: `bg-background`, `bg-card`, `bg-surface`, `bg-muted`. Text: `text-foreground`, `text-muted-foreground`, `text-subtle`. Accent: `text-brand`, `bg-brand`, `bg-brand-soft`, `bg-primary text-primary-foreground` for the main button. Small highlight: `text-brass`. Gains and losses: `text-up`, `text-down`. Borders: `border-border`, or the `hairline` utility. Charts: `var(--chart-1)` to `var(--chart-5)`, `var(--up)`, `var(--down)`, `var(--border)`, `var(--muted-foreground)`. Light and dark themes both have to look right; the `.dark` class is on `<html>`.
-- **Type:** Geist for the interface (default). `font-display` (a serif) only for a large headline number or title inside a widget, sparingly. Add the `nums` class to prices, odds, times and counters. Sizes: widget title 0.95rem medium (the frame does this), body 0.85 to 0.9rem, meta 0.72 to 0.8rem in `text-muted-foreground`.
+- **Type:** Geist for the interface (default). `font-display` only for a large headline number or title inside a widget, sparingly. Add the `nums` class to prices, odds, times and counters. Sizes: widget title 0.95rem medium (the frame does this), body 0.85 to 0.9rem, meta 0.72 to 0.8rem in `text-muted-foreground`.
 - **Shape:** the frame is `rounded-2xl`; inner cards `rounded-xl`; chips and badges `rounded-full`. Shadows: `shadow-card`, `shadow-float` for things that lift.
 - **Space:** generous but dense enough to be useful. Align to a 4px grid. Let the main number or image breathe.
 - **Motion:** import from `motion/react`. Stagger list items in (opacity + 6 to 8px rise, 250 to 400ms, ease-out), animate layout changes, count numbers up or cross-fade them when they change. Hover states on anything clickable. Keep it calm: no bounces, nothing longer than 500ms. CSS helpers exist: `animate-rise`, `animate-fade`, `animate-pulse-dot`, `shimmer`, `text-shimmer`.

@@ -161,7 +161,7 @@ export function showWidgetTool() {
   return tool({
     description:
       "Show a custom widget that you compose from blocks, for anything the other tools do not cover: a pie or bar chart of numbers you found, a small dashboard, a timeline, a ranked list with links, a checklist, a table, buttons for next steps, or (with an html block) something interactive such as a calculator. " +
-      "Use the specialised tools first when one fits (places, flights, hotels, products, stocks, prediction markets, images, weather, comparison, key facts). " +
+      "Use the specialised tools first when one fits (places, a sift, prices by country, news, prediction markets, weather, comparison, key facts). " +
       "Blocks render in order; give two related blocks width 'half' to sit side by side (a chart next to its key numbers). Three to six blocks is usually right. " +
       "Use only data you found or the user gave; cite it with sourceUrls. Prefer chart, stats, table and list blocks over html: they are faster and always look right. " +
       "Buttons with action 'ask' let the user continue with one tap ('Compare with last year', 'Find cheaper options').",

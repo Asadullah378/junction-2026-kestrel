@@ -11,9 +11,9 @@
 //
 // The account is made straight in the database (an ordinary account, never an admin) with an
 // address at Resend's test inbox, which reaches no one, and is deleted at the end along with
-// everything it made. It needs DATABASE_URL from exa/.env.local, and RESEND_API_KEY on the
+// everything it made. It needs DATABASE_URL from the root .env.local, and RESEND_API_KEY on the
 // server for the email checks (without it they are skipped and said so).
-// It takes about eight minutes and costs around ten cents in model and Exa calls.
+// It takes about eight minutes and spends model calls and Context.dev credits.
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";

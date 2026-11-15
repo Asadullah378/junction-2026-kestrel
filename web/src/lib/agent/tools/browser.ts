@@ -6,7 +6,7 @@ import type { BrowserStepData } from "@/lib/browser/protocol";
 import { browserActInput, browserCloseInput, browserLookInput, browserOpenInput, browserReadInput, requestUserActionInput } from "@/lib/browser/tool-inputs";
 
 /*
- * The agent's hands: a real browser the user watches live. Exa finds things; these tools do
+ * The agent's hands: a real browser the user watches live. The search tools find things; these tools do
  * things with them (fill the booking form, put the product in the basket, go through the steps
  * of an application), up to the point where the user must decide.
  *

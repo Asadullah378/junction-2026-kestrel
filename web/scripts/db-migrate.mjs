@@ -2,7 +2,7 @@
 //
 // Applies the SQL files in drizzle/ that the database has not seen yet. The server does the same
 // when it starts; this is for doing it by hand, or as a step of a deployment. It reads
-// DATABASE_URL from the environment, or from exa/.env.local when it is not set.
+// DATABASE_URL from the environment, or from the root .env.local when it is not set.
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +14,7 @@ if (!process.env.DATABASE_URL && existsSync(sharedEnv)) process.loadEnvFile(shar
 
 const url = process.env.DATABASE_URL?.trim();
 if (!url) {
-  console.error("DATABASE_URL is not set. Add it to exa/.env.local (see .env.example).");
+  console.error("DATABASE_URL is not set. Add it to the root .env.local (see .env.example).");
   process.exit(1);
 }
 

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import type { MarketOutcome, PredictionMarketData, WidgetProps } from "@/lib/widgets/types";
 import { domainOf } from "@/lib/widgets/types";
 import { LiveDot, Shimmer, WidgetError, WidgetFrame, formatDate } from "./frame";
-import { ChartShimmer, ChartTip, EmptyNote, Ticker, formatTime, timeTicks } from "./stocks";
+import { ChartShimmer, ChartTip, EmptyNote, Ticker, formatTime, timeTicks } from "./chart-parts";
 import { formatUpdated, useLive, useNow } from "./use-live";
 
 const POLL_MS = 20_000;

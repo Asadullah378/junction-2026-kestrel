@@ -37,7 +37,7 @@ function claudeProvider() {
     const workspaceId = process.env.ANTHROPIC_AWS_WORKSPACE_ID;
     const apiKey = process.env.ANTHROPIC_AWS_API_KEY;
     if (!region || !workspaceId || !apiKey) {
-      throw new ProviderNotConfigured("claude: set AWS_REGION, ANTHROPIC_AWS_WORKSPACE_ID and ANTHROPIC_AWS_API_KEY in exa/.env.local.");
+      throw new ProviderNotConfigured("claude: set AWS_REGION, ANTHROPIC_AWS_WORKSPACE_ID and ANTHROPIC_AWS_API_KEY in the root .env.local.");
     }
     claude = createAnthropicAws({ region, workspaceId, apiKey });
   }
@@ -47,7 +47,7 @@ function claudeProvider() {
 function geminiProvider() {
   if (!gemini) {
     const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) throw new ProviderNotConfigured("gemini: set GOOGLE_API_KEY in exa/.env.local.");
+    if (!apiKey) throw new ProviderNotConfigured("gemini: set GOOGLE_API_KEY in the root .env.local.");
     gemini = createGoogle({ apiKey });
   }
   return gemini;

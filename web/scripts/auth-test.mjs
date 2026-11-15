@@ -1,7 +1,7 @@
 // End-to-end test of accounts, sign-in and saved conversations, over HTTP against a running server.
 // Needs the dev server and its database. Run: pnpm test:auth [port]
 //
-// It signs in as the admin from exa/.env.local, makes a few throwaway accounts, and checks what
+// It signs in as the admin from the root .env.local, makes a few throwaway accounts, and checks what
 // must hold: wrong passwords are refused, each account sees only its own conversations, a
 // conversation can only be added to from the kind of client it was started in, the admin's routes
 // are the admin's alone, the admin decides each account's modes, whether it sees usage and how
@@ -79,7 +79,7 @@ const adminPassword = process.env.ADMIN_PASSWORD;
 const admin = new Client();
 
 try {
-  if (!adminEmail || !adminPassword) throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD must be set in exa/.env.local.");
+  if (!adminEmail || !adminPassword) throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD must be set in the root .env.local.");
 
   /* Signed out. */
   const nobody = new Client();

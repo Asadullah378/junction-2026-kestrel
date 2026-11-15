@@ -103,7 +103,7 @@ export async function POST(req: Request) {
       } catch (err) {
         say({ type: "error", error: err instanceof Error && err.name !== "AbortError" ? err.message.slice(0, 300) : "The tool was stopped." });
       } finally {
-        // What the tool itself spent (Exa, sub-agents) is counted against the account. The call's own tokens are reported when it ends.
+        // What the tool itself spent (web data, sub-agents) is counted against the account. The call's own tokens are reported when it ends.
         void recordUsage({ userId: user.id, conversationId, client, model: { id: LIVE_MODEL.id, label: LIVE_MODEL.label }, kind: "tool", stats: { mode: "voice", startedAt, durationMs: Date.now() - startedAt, steps: 1, ...meter.snapshot() } });
         controller.close();
       }

@@ -8,7 +8,7 @@
 //
 // The accounts are made straight in the database (ordinary accounts, never an admin) with
 // addresses at Resend's test inbox, which reaches no one, and are deleted at the end. It needs
-// DATABASE_URL from exa/.env.local, and RESEND_API_KEY on the server: the email checks read
+// DATABASE_URL from the root .env.local, and RESEND_API_KEY on the server: the email checks read
 // notifications.emailed_at. It takes about three minutes and costs under a cent.
 import crypto from "node:crypto";
 import fs from "node:fs";

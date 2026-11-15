@@ -50,6 +50,6 @@ export const ANSWERED_BY_APP = ["requestLocation", "requestUserAction", "browser
 /** One line from the tool route while a tool runs: what there is so far, then the result and what the model is told. */
 export type VoiceToolEvent =
   | { type: "progress"; output: unknown }
-  /** `spent`: what the tool itself cost (Exa calls, sub-agents), for the answer's figures. */
+  /** `spent`: what the tool itself cost (web data calls, sub-agents), for the answer's figures. */
   | { type: "result"; output: unknown; text: string; spent?: { webCostUsd?: number; workerCostUsd?: number; decisionCostUsd?: number; decisionCalls?: number; webCalls?: { search: number; read: number; extract: number; watch: number } } }
   | { type: "error"; error: string };

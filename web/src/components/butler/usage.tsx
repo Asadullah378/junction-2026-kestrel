@@ -15,7 +15,7 @@ import { ModeIcon } from "./mode-icon";
 /*
  * What an answer says about itself, and what a conversation adds up to. The interface names the
  * mode an answer ran in, never the model behind it. What it used and cost is grouped by kind
- * (the models that answer and help, Exa, voice, and the checks sift makes) and is shown only to
+ * (the models that answer and help, web data, voice, and the checks sift makes) and is shown only to
  * an account the admin lets see its usage.
  */
 

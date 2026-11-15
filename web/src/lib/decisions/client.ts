@@ -8,7 +8,7 @@ import "server-only";
  * there are no output tokens, and many questions take about as long as one. That is what makes
  * it possible to check dozens of pages against several wishes in about a second.
  *
- * We call the HTTP API directly, as with Exa, so the request is explicit. The field names are
+ * We call the HTTP API directly, as lib/sources does for the web data services, so the request is explicit. The field names are
  * the ones in `node_modules/@google/genai` (`decisions.create`); check there before changing them.
  */
 
@@ -64,7 +64,7 @@ export async function decide(
   opts: { meter?: DecisionMeter; signal?: AbortSignal; timeoutMs?: number } = {},
 ): Promise<{ answers: Record<string, DecisionAnswer>; inputTokens: number; costUsd: number; ms: number }> {
   const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) throw new DecisionError("The decision model is not configured. Set GOOGLE_API_KEY in exa/.env.local.", 500);
+  if (!apiKey) throw new DecisionError("The decision model is not configured. Set GOOGLE_API_KEY in the root .env.local.", 500);
   const count = Object.keys(questions).length;
   if (count === 0) return { answers: {}, inputTokens: 0, costUsd: 0, ms: 0 };
   if (count > DECISION_MODEL.maxQuestions) throw new DecisionError(`Too many questions for one request (${count}).`, 400);
@@ -82,7 +82,7 @@ export async function decide(
 
   const started = Date.now();
   let res = await attempt();
-  // Busy or rate-limited: one polite retry, as with Exa.
+  // Busy or rate-limited: one polite retry, as lib/sources/http.ts does.
   if (res.status === 429 || res.status === 503) {
     await new Promise((resolve) => setTimeout(resolve, Math.min(Number(res.headers.get("retry-after")) || 1, 3) * 1000));
     res = await attempt();

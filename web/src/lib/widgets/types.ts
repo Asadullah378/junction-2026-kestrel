@@ -93,76 +93,6 @@ export type PlacesData = WidgetBase & {
   origin?: { lat: number; lng: number; label?: string };
 };
 
-/* ───────────────────────── Travel ───────────────────────── */
-
-export type FlightLeg = {
-  from: string;
-  to: string;
-  /** ISO local date-time, for example "2026-12-05T14:00". */
-  departAt: string;
-  arriveAt: string;
-  durationMinutes?: number;
-  stops: number;
-  airline?: string;
-  flightNumber?: string;
-};
-
-export type FlightOption = {
-  id: string;
-  airline: string;
-  price: number;
-  currency: string;
-  outbound: FlightLeg;
-  inbound?: FlightLeg;
-  /** Fare class and conditions, for example "Economy Light: no checked bag". */
-  fareNote?: string;
-  bookingUrl?: string;
-  /** "Cheapest", "Fastest", "Best overall". */
-  tag?: string;
-};
-
-export type FlightsData = WidgetBase & {
-  kind: "flights";
-  origin: string;
-  destination: string;
-  departDate: string;
-  returnDate?: string;
-  adults: number;
-  options: FlightOption[];
-  note?: string;
-};
-
-export type HotelOption = {
-  id: string;
-  name: string;
-  address?: string;
-  area?: string;
-  lat?: number;
-  lng?: number;
-  stars?: number;
-  /** Guest rating, 0 to 10. */
-  rating?: number;
-  reviewCount?: number;
-  pricePerNight: number;
-  totalPrice?: number;
-  currency: string;
-  image?: string;
-  amenities?: string[];
-  bookingUrl?: string;
-  tag?: string;
-  note?: string;
-};
-
-export type HotelsData = WidgetBase & {
-  kind: "hotels";
-  location: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
-  options: HotelOption[];
-  note?: string;
-};
-
 /* ───────────────────────── Shopping ───────────────────────── */
 
 export type Product = {
@@ -203,37 +133,6 @@ export type PricePoint = {
   v: number;
 };
 
-export type StockQuote = {
-  symbol: string;
-  name: string;
-  price: number;
-  change: number;
-  changePercent: number;
-  currency: string;
-  /** Human-readable, for example "13 Nov 2026, 16:00 ET". */
-  asOf: string;
-  open?: number;
-  high?: number;
-  low?: number;
-  previousClose?: number;
-  series: PricePoint[];
-  /** What the series covers: "Today, 1-minute" or "1 year, daily". */
-  seriesLabel: string;
-  url: string;
-  /**
-   * The market is closed (an evening, a weekend, a holiday): `price` is the last session's close
-   * and `asOf` names that session. There is no minute-by-minute series then.
-   */
-  closed?: boolean;
-  /** Shares traded in that session, as the source writes it: "362.49M". */
-  volume?: string;
-};
-
-export type StocksData = WidgetBase & {
-  kind: "stocks";
-  quotes: StockQuote[];
-};
-
 export type MarketOutcome = {
   name: string;
   /** 0 to 1. */
@@ -257,22 +156,6 @@ export type PredictionMarketData = WidgetBase & {
   historyLabel: string;
   /** How to re-fetch live odds from the browser: the Polymarket event slug. */
   slug?: string;
-};
-
-/* ───────────────────────── Images ───────────────────────── */
-
-export type ImageItem = {
-  url: string;
-  title?: string;
-  /** The page the image appears on. */
-  pageUrl: string;
-  domain: string;
-};
-
-export type ImagesData = WidgetBase & {
-  kind: "images";
-  query: string;
-  images: ImageItem[];
 };
 
 /* ───────────────────────── Weather ───────────────────────── */
