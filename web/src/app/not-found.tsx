@@ -26,7 +26,7 @@ export default function NotFound() {
         <div className="w-full max-w-[30rem] animate-rise text-center">
           <p className="nums text-[0.8rem] font-medium tracking-[0.18em] text-brand uppercase">Error 404</p>
           <h1 className="font-display mt-3 text-[2.2rem] leading-[1.1] text-balance sm:text-[2.9rem]">This page isn&apos;t here.</h1>
-          <p className="mx-auto mt-4 max-w-[24rem] text-[0.98rem] leading-relaxed text-muted-foreground">The link may be old or mistyped. Nothing is lost: your chats and jobs are where you left them.</p>
+          <p className="mx-auto mt-4 max-w-[24rem] text-[0.98rem] leading-relaxed text-muted-foreground">The link may be old or mistyped. Nothing is lost: your chats and watches are where you left them.</p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
             <Link
               href="/"

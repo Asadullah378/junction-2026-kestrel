@@ -127,27 +127,27 @@ export function portableHtml(rendered: HTMLElement): string {
 const DOCUMENT_STYLE = `
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #faf8f3; color: #1c211d; font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif; }
+  body { margin: 0; background: #faf8f3; color: #131a28; font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif; }
   main { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 4rem; }
-  .kicker { margin: 0 0 .6rem; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: #0f6b4f; font-weight: 600; }
+  .kicker { margin: 0 0 .6rem; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: #9a5a12; font-weight: 600; }
   h1 { margin: 0 0 1.6rem; font-size: 1.85rem; line-height: 1.2; font-weight: 600; letter-spacing: -.03em; text-wrap: balance; }
   h2 { margin: 2.1rem 0 .6rem; font-size: 1.15rem; line-height: 1.3; }
   h3, h4 { margin: 1.6rem 0 .4rem; font-size: 1rem; }
   p { margin: 0 0 1rem; }
   ul, ol { margin: 0 0 1rem; padding-left: 1.3rem; }
   li { margin: .25rem 0; }
-  a { color: #0f6b4f; text-decoration: underline; text-decoration-color: rgba(15, 107, 79, .35); text-underline-offset: 3px; overflow-wrap: anywhere; }
+  a { color: #9a5a12; text-decoration: underline; text-decoration-color: rgba(154, 90, 18, .35); text-underline-offset: 3px; overflow-wrap: anywhere; }
   table { width: 100%; margin: 0 0 1.2rem; border-collapse: collapse; font-size: .92rem; }
   th, td { padding: .5rem .65rem; border: 1px solid #e2ded3; text-align: left; vertical-align: top; }
   th { background: #f1eee6; font-weight: 600; }
-  blockquote { margin: 0 0 1rem; padding-left: 1rem; border-left: 3px solid #d8d3c5; color: #4d564f; }
+  blockquote { margin: 0 0 1rem; padding-left: 1rem; border-left: 3px solid #d8d3c5; color: #4b5260; }
   code { font: .9em ui-monospace, SFMono-Regular, Menlo, monospace; background: #f1eee6; padding: .1em .3em; border-radius: 4px; }
   hr { margin: 2rem 0; border: 0; border-top: 1px solid #e2ded3; }
   .sources { margin-top: 2.6rem; padding-top: 1.4rem; border-top: 1px solid #e2ded3; font-size: .9rem; }
   .sources h2 { margin-top: 0; }
   .sources li { margin: .35rem 0; }
-  .sources span { color: #6a726c; }
-  footer { margin-top: 2.4rem; font-size: .8rem; color: #6a726c; }
+  .sources span { color: #666d78; }
+  footer { margin-top: 2.4rem; font-size: .8rem; color: #666d78; }
   @media print {
     body { background: #fff; font-size: 11.5pt; }
     main { max-width: none; padding: 0; }

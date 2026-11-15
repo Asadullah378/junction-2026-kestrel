@@ -3,18 +3,16 @@
 import * as React from "react";
 import Link from "next/link";
 import { MotionConfig, motion, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { ArrowRight, Check, Command, Download as DownloadIcon, Grid2x2, Menu, Play, X } from "lucide-react";
+import { ArrowRight, Check, Menu, Play, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EFFORTS, MODES, type Effort, type ModeId } from "@/lib/agent/modes";
 import { APP_NAME } from "@/lib/brand";
-import { DOWNLOADS, FIRST_LAUNCH, downloadHref } from "@/lib/downloads";
-import { useClientValue } from "@/lib/use-client";
 import { ThemeToggle } from "@/components/account/theme-toggle";
 import { Logo } from "@/components/brand/logo";
 import { ModeIcon } from "@/components/butler/mode-icon";
 
 /* The parts of the landing page that need the browser: the bar at the top, everything that moves,
-   the download picker (which looks at the visitor's system) and the demo video. */
+   and the demo video. */
 
 const EASE = [0.2, 0.8, 0.2, 1] as const;
 
@@ -95,11 +93,11 @@ export function VoiceBars({ className }: { className?: string }) {
 
 /** In the order the sections come down the page. */
 const LINKS = [
-  { id: "watch", label: "Watch" },
-  { id: "ask", label: "What it does" },
-  { id: "desktop", label: "Desktop app" },
-  { id: "jobs", label: "Jobs" },
-  { id: "download", label: "Download" },
+  { id: "film", label: "Demo" },
+  { id: "watches", label: "Watches" },
+  { id: "ask", label: "Ask" },
+  { id: "how", label: "How it works" },
+  { id: "trust", label: "Trust" },
 ];
 
 /** Which of the page's sections is in the middle of the screen right now. */
@@ -126,7 +124,7 @@ function useSection(ids: string[]): string | null {
 }
 
 /** Where each section of the page belongs in the bar: the ones it does not name count under the one before them. */
-const UNDER: Record<string, string> = { ask: "ask", desktop: "desktop", voice: "desktop", jobs: "jobs", sift: "jobs", research: "jobs", more: "jobs", watch: "watch", anywhere: "watch", download: "download", powered: "download" };
+const UNDER: Record<string, string> = { film: "film", watches: "watches", ask: "ask", how: "how", powered: "how", trust: "trust", more: "trust" };
 
 /** The bar at the top: the name, where to jump to, the theme, and the way in. */
 export function TopNav({ signedIn }: { signedIn: boolean }) {
@@ -199,101 +197,6 @@ export function TopNav({ signedIn }: { signedIn: boolean }) {
   );
 }
 
-/* ───────── Downloads ───────── */
-
-type System = "mac" | "windows" | "phone" | "other";
-
-/** Which system the visitor is on, as far as a browser will say. Not known until the page is in the browser. */
-function readSystem(): System {
-  const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod|Android/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) return "phone";
-  if (/Mac/i.test(ua)) return "mac";
-  if (/Win/i.test(ua)) return "windows";
-  return "other";
-}
-
-const SYSTEMS = [
-  { os: "mac", label: "Mac", icon: Command },
-  { os: "windows", label: "Windows", icon: Grid2x2 },
-] as const;
-
-/**
- * The desktop app, for the system the visitor picks. It starts on their own system when the
- * browser says which that is. Under the buttons: how to open the app the first time, for that system.
- */
-export function DownloadPicker() {
-  const system = useClientValue<System | null>(readSystem, null);
-  const [picked, setPicked] = React.useState<"mac" | "windows" | null>(null);
-  const os = picked ?? (system === "windows" ? "windows" : "mac");
-  const files = DOWNLOADS.filter((d) => d.os === os);
-  const guide = FIRST_LAUNCH[os];
-  const steps = [...guide.install, ...guide.open];
-  return (
-    <div className="rounded-3xl border border-border bg-card p-5 shadow-card sm:p-7">
-      <div role="tablist" aria-label="Your computer" className="inline-flex rounded-full bg-muted p-1">
-        {SYSTEMS.map(({ os: id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            id={`download-tab-${id}`}
-            aria-selected={os === id}
-            aria-controls="download-panel"
-            onClick={() => setPicked(id)}
-            className={cn(
-              "relative flex h-10 items-center gap-2 rounded-full px-5 text-[0.9rem] font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/40",
-              os === id ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {os === id ? <motion.span layoutId="download-pill" className="absolute inset-0 rounded-full bg-card shadow-card" transition={{ duration: 0.25, ease: EASE }} /> : null}
-            <Icon className="relative size-4" aria-hidden />
-            <span className="relative">{label}</span>
-          </button>
-        ))}
-      </div>
-
-      <div id="download-panel" role="tabpanel" aria-labelledby={`download-tab-${os}`} className="mt-6">
-        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap">
-          {files.map((file, i) => (
-            <a
-              key={file.id}
-              href={downloadHref(file.id)}
-              className={cn(
-                "flex h-14 items-center justify-center gap-3 rounded-2xl px-6 transition-[opacity,transform,border-color] active:scale-[0.98] sm:justify-start",
-                i === 0 ? "bg-primary text-primary-foreground shadow-float hover:opacity-90" : "border border-border bg-card shadow-card hover:border-ring/50",
-              )}
-            >
-              <DownloadIcon className={cn("size-5 shrink-0", i === 0 ? "" : "text-muted-foreground")} aria-hidden />
-              <span className="text-left leading-tight">
-                <span className="block text-[0.98rem] font-medium">{file.label}</span>
-                <span className={cn("block text-[0.78rem]", i === 0 ? "opacity-80" : "text-muted-foreground")}>{file.detail}</span>
-              </span>
-            </a>
-          ))}
-        </div>
-        <p className="mt-3 text-[0.82rem] leading-relaxed text-subtle">
-          {os === "mac" ? "Not sure which? Open the Apple menu and choose About This Mac. “Chip: Apple” means Apple silicon. Needs macOS 13 or later." : `Needs ${files[0]?.requires ?? "Windows 10 or 11"}.`}
-          {system === "phone" ? ` The desktop app is for computers. On your phone, open ${APP_NAME} in the browser and add it to your home screen.` : ""}
-        </p>
-
-        <div className="mt-6 border-t border-border/70 pt-5">
-          <h3 className="text-[0.95rem] font-semibold tracking-tight">Opening it the first time on {os === "mac" ? "a Mac" : "Windows"}</h3>
-          <p className="mt-1.5 text-[0.86rem] leading-relaxed text-muted-foreground">{guide.why}</p>
-          <ol className="mt-4 grid gap-2.5">
-            {steps.map((step, i) => (
-              <li key={step} className="flex items-start gap-3 text-[0.88rem] leading-relaxed">
-                <span className="nums mt-px flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[0.72rem] font-semibold text-brand">{i + 1}</span>
-                {step}
-              </li>
-            ))}
-          </ol>
-          {guide.otherwise ? <p className="mt-4 text-[0.82rem] leading-relaxed text-subtle">{guide.otherwise}</p> : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ───────── The demo video ───────── */
 
 /** The id of a YouTube video, from any of the links people paste. */
@@ -302,8 +205,11 @@ function youtubeId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-/** The still shown before a video file is played: a frame of the film itself. Retake it when the film changes. */
-const DEMO_POSTER = "/landing/demo-poster.jpg";
+/**
+ * The still shown before a video file is played: a frame of the film itself, as a file in
+ * public/landing (for example "/landing/demo-poster.jpg"). None until Kestrel's film exists.
+ */
+const DEMO_POSTER: string | undefined = undefined;
 
 /**
  * The demo. `src` is a YouTube link or the address of a video file; it comes from the
@@ -323,8 +229,8 @@ export function DemoVideo({ src }: { src: string }) {
           <Play className="size-6 translate-x-0.5 sm:size-7" aria-hidden />
         </span>
         <div>
-          <p className="font-display text-[1.15rem] sm:text-[1.4rem]">The demo video is on its way</p>
-          <p className="mt-1 text-[0.9rem] text-muted-foreground">We&apos;re still recording it. Check back soon.</p>
+          <p className="font-display text-[1.15rem] sm:text-[1.4rem]">The film is on its way</p>
+          <p className="mt-1 text-[0.9rem] text-muted-foreground">We&apos;re still making it. Check back soon.</p>
         </div>
       </div>
     );
@@ -354,7 +260,7 @@ export function DemoVideo({ src }: { src: string }) {
   }
   return (
     <div className={frame}>
-      <video ref={film} src={src} poster={DEMO_POSTER} controls={playing} playsInline preload="none" onPlay={() => setPlaying(true)} className="absolute inset-0 size-full bg-black object-contain" />
+      <video ref={film} src={src} poster={DEMO_POSTER} controls={playing} playsInline preload="none" onPlay={() => setPlaying(true)} className="absolute inset-0 size-full bg-[oklch(0.15_0.03_262)] object-contain" />
       {playing ? null : (
         <button
           type="button"

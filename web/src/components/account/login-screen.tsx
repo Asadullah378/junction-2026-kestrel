@@ -3,11 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowRight, Globe, LayoutGrid, LoaderCircle, MousePointerClick, TriangleAlert } from "lucide-react";
-import { APP_NAME } from "@/lib/brand";
+import { ArrowRight, BellRing, ListChecks, LoaderCircle, Radar, TriangleAlert } from "lucide-react";
+import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import { api, errorOf } from "@/lib/auth/fetch";
 import { Logo } from "@/components/brand/logo";
-import { useDesktopApp } from "@/lib/browser/desktop";
 import { Field, PasswordField } from "./field";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -15,14 +14,14 @@ const EASE = [0.2, 0.8, 0.2, 1] as const;
 
 /** What the product does, in three short lines under the form. */
 const POINTS = [
-  { icon: <Globe />, text: "Searches the live web with Exa" },
-  { icon: <LayoutGrid />, text: "Answers as maps, charts and cards" },
-  { icon: <MousePointerClick />, text: "Books and buys for you in the desktop app" },
+  { icon: <Radar />, text: "Watches the live web for what you asked for" },
+  { icon: <ListChecks />, text: "Checks every page against your conditions" },
+  { icon: <BellRing />, text: "Tells you what changed, with the source" },
 ];
 
 /**
  * The sign-in screen: an email, a password, one button. There is no sign-up, because accounts are
- * made by the admin. The same screen opens in a browser tab, on a phone and in the desktop app.
+ * made by the admin. The same screen opens in a browser tab and on a phone.
  */
 export function LoginScreen({
   next,
@@ -61,7 +60,6 @@ export function LoginScreen({
     setBusy(false);
   };
 
-  const desktop = useDesktopApp();
   const brand = (
     <>
       <Logo size={32} className="rounded-[0.6rem] shadow-card" />
@@ -72,21 +70,16 @@ export function LoginScreen({
   return (
     <div className="backdrop-room flex min-h-dvh flex-col bg-background">
       <header className="flex h-14 shrink-0 items-center justify-between px-4 sm:px-6">
-        {desktop ? (
-          // The desktop app has no landing page to go back to: the name is just the name there.
-          <div className="flex items-center gap-2.5">{brand}</div>
-        ) : (
-          <Link href="/" aria-label={`${APP_NAME}, home`} className="flex items-center gap-2.5 rounded-lg outline-none transition-opacity hover:opacity-85 focus-visible:ring-3 focus-visible:ring-ring/40">
-            {brand}
-          </Link>
-        )}
+        <Link href="/" aria-label={`${APP_NAME}, home`} className="flex items-center gap-2.5 rounded-lg outline-none transition-opacity hover:opacity-85 focus-visible:ring-3 focus-visible:ring-ring/40">
+          {brand}
+        </Link>
         <ThemeToggle />
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4 pt-6 pb-[max(env(safe-area-inset-bottom),2.5rem)] sm:px-6">
         <div className="w-full max-w-[25.5rem]">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
-            <p className="text-[0.74rem] font-medium tracking-[0.14em] text-brand uppercase sm:text-[0.8rem]">{APP_NAME}, your internet butler</p>
+            <p className="text-[0.74rem] font-medium tracking-[0.14em] text-brand uppercase sm:text-[0.8rem]">{APP_NAME}. {APP_TAGLINE}.</p>
             <h1 className="font-display mt-3 text-[2rem] leading-[1.12] text-balance sm:text-[2.5rem]">
               Welcome back.
               <br />

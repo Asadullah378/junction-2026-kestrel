@@ -8,10 +8,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system: "Concierge".
- * Ivory paper and ink in light mode, a green-black room in dark mode, one emerald
- * accent, a brass detail for small highlights. Serif display type for headings,
- * Geist for the interface, Geist Mono for numbers.
+ * Design system: "Lookout".
+ * Warm paper and navy ink in light mode, a deep navy sky in dark mode, one amber
+ * accent, a brass detail for small highlights. Geist for the interface and the
+ * headings, Geist Mono for numbers.
  * Every colour in the app comes from these tokens; do not hard-code hex values in components.
  */
 
@@ -110,103 +110,113 @@
 :root {
   --radius: 0.75rem;
 
-  --background: oklch(0.984 0.004 95);
-  --foreground: oklch(0.2 0.012 165);
-  --surface: oklch(0.97 0.005 95);
-  --surface-raised: oklch(0.998 0.002 95);
-  --card: oklch(0.998 0.002 95);
-  --card-foreground: oklch(0.2 0.012 165);
-  --popover: oklch(0.998 0.002 95);
-  --popover-foreground: oklch(0.2 0.012 165);
-  --primary: oklch(0.36 0.075 168);
-  --primary-foreground: oklch(0.985 0.01 160);
-  --secondary: oklch(0.955 0.006 95);
-  --secondary-foreground: oklch(0.24 0.014 165);
-  --muted: oklch(0.96 0.005 95);
-  --muted-foreground: oklch(0.49 0.012 155);
-  --subtle: oklch(0.62 0.01 155);
-  --accent: oklch(0.948 0.014 160);
-  --accent-foreground: oklch(0.26 0.04 166);
+  --background: oklch(0.984 0.005 90);
+  --foreground: oklch(0.21 0.03 262);
+  --surface: oklch(0.97 0.006 90);
+  --surface-raised: oklch(0.998 0.002 90);
+  --card: oklch(0.998 0.002 90);
+  --card-foreground: oklch(0.21 0.03 262);
+  --popover: oklch(0.998 0.002 90);
+  --popover-foreground: oklch(0.21 0.03 262);
+  --primary: oklch(0.29 0.07 262);
+  --primary-foreground: oklch(0.985 0.01 88);
+  --secondary: oklch(0.955 0.007 90);
+  --secondary-foreground: oklch(0.25 0.035 262);
+  --muted: oklch(0.96 0.006 90);
+  --muted-foreground: oklch(0.49 0.02 262);
+  --subtle: oklch(0.62 0.018 262);
+  --accent: oklch(0.95 0.022 84);
+  --accent-foreground: oklch(0.27 0.045 262);
   --destructive: oklch(0.577 0.2 27);
-  --border: oklch(0.912 0.006 95);
-  --hairline: oklch(0.2 0.012 165 / 8%);
-  --input: oklch(0.895 0.006 95);
-  --ring: oklch(0.6 0.1 165);
+  --border: oklch(0.912 0.007 90);
+  --hairline: oklch(0.21 0.03 262 / 8%);
+  --input: oklch(0.895 0.007 90);
+  --ring: oklch(0.68 0.13 70);
 
-  --brand: oklch(0.52 0.12 164);
-  --brand-soft: oklch(0.94 0.035 162);
-  --brass: oklch(0.7 0.11 82);
+  --brand: oklch(0.54 0.115 62);
+  --brand-soft: oklch(0.945 0.04 82);
+  --brass: oklch(0.7 0.11 88);
+  /* The cool note beside the amber: the sky behind the bird. Used only in page backdrops. */
+  --sky: oklch(0.6 0.09 250);
   --up: oklch(0.56 0.14 160);
   --down: oklch(0.58 0.19 27);
 
-  --chart-1: oklch(0.56 0.13 164);
-  --chart-2: oklch(0.72 0.12 80);
-  --chart-3: oklch(0.55 0.11 250);
+  /* The logo: an amber bird on a navy tile in light mode, the reverse in dark mode. */
+  --logo-tile: var(--primary);
+  --logo-ink: oklch(0.82 0.145 75);
+
+  --chart-1: oklch(0.66 0.14 68);
+  --chart-2: oklch(0.48 0.1 258);
+  --chart-3: oklch(0.62 0.1 190);
   --chart-4: oklch(0.66 0.16 32);
   --chart-5: oklch(0.58 0.13 305);
 
-  --sidebar: oklch(0.972 0.005 95);
-  --sidebar-foreground: oklch(0.2 0.012 165);
-  --sidebar-primary: oklch(0.36 0.075 168);
-  --sidebar-primary-foreground: oklch(0.985 0.01 160);
-  --sidebar-accent: oklch(0.948 0.014 160);
-  --sidebar-accent-foreground: oklch(0.26 0.04 166);
-  --sidebar-border: oklch(0.912 0.006 95);
-  --sidebar-ring: oklch(0.6 0.1 165);
+  --sidebar: oklch(0.972 0.006 90);
+  --sidebar-foreground: oklch(0.21 0.03 262);
+  --sidebar-primary: oklch(0.29 0.07 262);
+  --sidebar-primary-foreground: oklch(0.985 0.01 88);
+  --sidebar-accent: oklch(0.95 0.022 84);
+  --sidebar-accent-foreground: oklch(0.27 0.045 262);
+  --sidebar-border: oklch(0.912 0.007 90);
+  --sidebar-ring: oklch(0.68 0.13 70);
 
-  /* Drawn over other people's web pages in the live browser (the agent's pointer, rings and
-     captions). Those pages do not follow our theme, so these stay the same in light and dark. */
-  --page-ink: oklch(0.22 0.012 165);
-  --page-paper: oklch(0.992 0.003 95);
-  --page-accent: oklch(0.56 0.13 164);
-  --page-brass: oklch(0.66 0.13 80);
+  /* Drawn over other people's web pages (a pointer, rings and captions). Those pages do not
+     follow our theme, so these stay the same in light and dark. */
+  --page-ink: oklch(0.22 0.03 262);
+  --page-paper: oklch(0.992 0.003 90);
+  --page-accent: oklch(0.6 0.13 65);
+  --page-brass: oklch(0.66 0.13 85);
   --page-stop: oklch(0.577 0.2 27);
 }
 
 .dark {
-  --background: oklch(0.155 0.008 168);
-  --foreground: oklch(0.955 0.006 95);
-  --surface: oklch(0.185 0.009 168);
-  --surface-raised: oklch(0.215 0.01 168);
-  --card: oklch(0.195 0.01 168);
-  --card-foreground: oklch(0.955 0.006 95);
-  --popover: oklch(0.215 0.01 168);
-  --popover-foreground: oklch(0.955 0.006 95);
-  --primary: oklch(0.8 0.13 163);
-  --primary-foreground: oklch(0.18 0.03 168);
-  --secondary: oklch(0.25 0.012 168);
-  --secondary-foreground: oklch(0.955 0.006 95);
-  --muted: oklch(0.235 0.01 168);
-  --muted-foreground: oklch(0.71 0.012 155);
-  --subtle: oklch(0.56 0.012 160);
-  --accent: oklch(0.27 0.022 166);
-  --accent-foreground: oklch(0.95 0.012 160);
+  --background: oklch(0.17 0.035 262);
+  --foreground: oklch(0.955 0.006 90);
+  --surface: oklch(0.2 0.036 262);
+  --surface-raised: oklch(0.235 0.038 262);
+  --card: oklch(0.212 0.037 262);
+  --card-foreground: oklch(0.955 0.006 90);
+  --popover: oklch(0.235 0.038 262);
+  --popover-foreground: oklch(0.955 0.006 90);
+  --primary: oklch(0.82 0.145 75);
+  --primary-foreground: oklch(0.19 0.04 262);
+  --secondary: oklch(0.268 0.04 262);
+  --secondary-foreground: oklch(0.955 0.006 90);
+  --muted: oklch(0.252 0.038 262);
+  --muted-foreground: oklch(0.73 0.03 258);
+  --subtle: oklch(0.58 0.03 258);
+  --accent: oklch(0.29 0.047 262);
+  --accent-foreground: oklch(0.95 0.012 88);
   --destructive: oklch(0.704 0.191 22);
-  --border: oklch(1 0 0 / 9%);
-  --hairline: oklch(1 0 0 / 7%);
-  --input: oklch(1 0 0 / 13%);
-  --ring: oklch(0.66 0.12 163);
+  --border: oklch(1 0 0 / 10%);
+  --hairline: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.7 0.13 72);
 
-  --brand: oklch(0.8 0.13 163);
-  --brand-soft: oklch(0.3 0.045 166);
-  --brass: oklch(0.8 0.1 85);
+  --brand: oklch(0.82 0.145 75);
+  --brand-soft: oklch(0.31 0.05 75);
+  --brass: oklch(0.84 0.1 95);
+  --sky: oklch(0.72 0.1 250);
   --up: oklch(0.78 0.15 160);
   --down: oklch(0.72 0.17 25);
 
-  --chart-1: oklch(0.78 0.14 163);
-  --chart-2: oklch(0.82 0.11 85);
-  --chart-3: oklch(0.72 0.11 250);
+  --logo-tile: var(--primary);
+  --logo-ink: var(--primary-foreground);
+
+  --chart-1: oklch(0.8 0.14 72);
+  --chart-2: oklch(0.68 0.12 255);
+  --chart-3: oklch(0.76 0.1 190);
   --chart-4: oklch(0.74 0.14 32);
   --chart-5: oklch(0.74 0.12 305);
 
-  --sidebar: oklch(0.175 0.009 168);
-  --sidebar-foreground: oklch(0.955 0.006 95);
-  --sidebar-primary: oklch(0.8 0.13 163);
-  --sidebar-primary-foreground: oklch(0.18 0.03 168);
-  --sidebar-accent: oklch(0.27 0.022 166);
-  --sidebar-accent-foreground: oklch(0.95 0.012 160);
-  --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.66 0.12 163);
+  --sidebar: oklch(0.185 0.034 262);
+  --sidebar-foreground: oklch(0.955 0.006 90);
+  --sidebar-primary: oklch(0.82 0.145 75);
+  --sidebar-primary-foreground: oklch(0.19 0.04 262);
+  --sidebar-accent: oklch(0.29 0.047 262);
+  --sidebar-accent-foreground: oklch(0.95 0.012 88);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.7 0.13 72);
 }
 
 @layer base {
@@ -274,11 +284,11 @@
     color: transparent;
     animation: var(--animate-shimmer);
   }
-  /* Soft page backdrop: a faint emerald glow at the top of the room */
+  /* Soft page backdrop: a faint amber glow at the top, and a cooler one beside it */
   .backdrop-room {
     background-image:
       radial-gradient(60rem 28rem at 50% -8rem, color-mix(in oklch, var(--brand) 11%, transparent), transparent 70%),
-      radial-gradient(40rem 20rem at 85% 0%, color-mix(in oklch, var(--brass) 7%, transparent), transparent 70%);
+      radial-gradient(40rem 20rem at 85% 0%, color-mix(in oklch, var(--sky) 9%, transparent), transparent 70%);
     background-repeat: no-repeat;
   }
   .hairline {
@@ -330,8 +340,8 @@
   }
 }
 
-/* ───────── Voice: the call's stone ───────── */
-.orb { --orb-ink: var(--primary-foreground); --orb-tile: var(--primary); }
+/* ───────── Voice: the call's mark ───────── */
+.orb { --orb-ink: var(--logo-ink); --orb-tile: var(--logo-tile); }
 .orb-tile { fill: var(--orb-tile); transition: fill 0.4s ease; }
 .orb-facet, .orb-table { fill: var(--orb-ink); transform-origin: 16px 16px; transition: opacity 0.4s ease; }
 .orb-stone {
@@ -359,7 +369,7 @@
 .orb[data-status="listening"] .orb-stone { animation: orb-breathe 4.2s ease-in-out infinite; }
 /* Connecting and reconnecting: it waits, dimmed. */
 .orb[data-status="connecting"] .orb-stone, .orb[data-status="reconnecting"] .orb-stone { animation: orb-wait 1.6s ease-in-out infinite; }
-/* Working: the facets catch the light one after another. */
+/* Working: the feathers catch the light one after another. */
 .orb[data-status="thinking"] .orb-facet { animation: orb-facet 1.5s ease-in-out infinite; animation-delay: calc(var(--i) * 0.25s); }
 .orb[data-status="thinking"] .orb-ring { animation: orb-turn 2.4s linear infinite; border-style: dashed; opacity: 0.5; }
 /* Muted: the colour drains. */
@@ -455,5 +465,6 @@
 .landing .stage-glow {
   background:
     radial-gradient(38rem 20rem at 22% 12%, color-mix(in oklch, var(--brand) 16%, transparent), transparent 70%),
-    radial-gradient(34rem 18rem at 84% 78%, color-mix(in oklch, var(--brass) 12%, transparent), transparent 70%);
+    radial-gradient(34rem 18rem at 84% 78%, color-mix(in oklch, var(--sky) 13%, transparent), transparent 70%);
 }
+

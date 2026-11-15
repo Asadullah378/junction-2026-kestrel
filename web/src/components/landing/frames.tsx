@@ -1,31 +1,10 @@
 import { cn } from "@/lib/utils";
 
 /*
- * Real screenshots of the app, and the frames they sit in. Every picture exists twice, once per
- * theme, and the page shows the one that matches. The frames are drawn in CSS: a browser window,
- * the desktop app's window and a phone.
- *
- * A frame never crops its picture. The picture is shown whole, at its own proportions, and the
- * frame is built around it: the phone adds a status bar above and a home bar below, so the app's
- * own edges (its top bar, its message box) sit clear of the phone's rounded corners.
+ * The frames the landing page puts its pictures in, drawn in CSS: a browser window, a plain
+ * window with a title, and a phone. What goes inside is drawn by the page itself, so it follows
+ * the theme.
  */
-
-/** Screenshots of the full window are 1680 by 998, the phone ones 780 by 1624 (a 390 by 812 screen, twice over). */
-export const WIDE = { width: 1680, height: 998 } as const;
-export const TALL = { width: 780, height: 1624 } as const;
-
-/** One screenshot, in the theme the page is in. `className` goes on both pictures. */
-export function Shot({ name, alt, size = WIDE, eager, className }: { name: string; alt: string; size?: { width: number; height: number }; /** For a picture on screen when the page opens. */ eager?: boolean; className?: string }) {
-  const shared = { width: size.width, height: size.height, loading: eager ? ("eager" as const) : ("lazy" as const), decoding: "async" as const };
-  return (
-    <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/landing/${name}-light.jpg`} alt={alt} {...shared} className={cn("block h-auto w-full dark:hidden", className)} />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/landing/${name}-dark.jpg`} alt={alt} {...shared} className={cn("hidden h-auto w-full dark:block", className)} />
-    </>
-  );
-}
 
 const Dots = () => (
   <span className="flex shrink-0 items-center gap-1.5" aria-hidden>
@@ -53,7 +32,7 @@ export function BrowserFrame({ address, children, className }: { /** What the ad
   );
 }
 
-/** The desktop app's own window: a title bar with its name. */
+/** A plain window: a title bar with a name. */
 export function WindowFrame({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={cn(WINDOW, className)}>
@@ -69,16 +48,16 @@ export function WindowFrame({ title, children, className }: { title: string; chi
 /**
  * A phone. Everything is sized from the frame's own width (container units), so it keeps its
  * proportions at any size. The screen has a status bar and a home bar of its own, in the app's
- * background colour: the screenshot sits between them, whole, away from the rounded corners.
+ * background colour: what is shown sits between them, away from the rounded corners.
  */
 export function PhoneFrame({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("[container-type:inline-size]", className)}>
-      <div className="rounded-[15cqw] bg-[oklch(0.24_0.012_170)] p-[2.6cqw] shadow-float ring-1 ring-foreground/10 dark:bg-[oklch(0.32_0.012_170)]">
+      <div className="rounded-[15cqw] bg-[oklch(0.24_0.03_262)] p-[2.6cqw] shadow-float ring-1 ring-foreground/10 dark:bg-[oklch(0.33_0.035_262)]">
         <div className="overflow-hidden rounded-[12.6cqw] bg-background">
           <div className="relative flex h-[9.5cqw] items-end justify-between px-[8cqw] pb-[1.2cqw] text-[3.3cqw] leading-none font-semibold text-foreground/80" aria-hidden>
             <span className="nums">9:41</span>
-            <span className="absolute top-[2.4cqw] left-1/2 h-[5.4cqw] w-[23cqw] -translate-x-1/2 rounded-full bg-[oklch(0.16_0.01_170)]" />
+            <span className="absolute top-[2.4cqw] left-1/2 h-[5.4cqw] w-[23cqw] -translate-x-1/2 rounded-full bg-[oklch(0.15_0.03_262)]" />
             <span className="flex items-center gap-[1.2cqw]">
               <span className="flex items-end gap-[0.5cqw]">
                 {[1.4, 2, 2.6, 3.2].map((h) => (

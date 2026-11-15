@@ -1,42 +1,42 @@
 /**
- * The name. Kestrel is a gemstone: emerald and aquamarine are both kestrel, and its crystals grow as
- * six-sided columns. Clear, hard and many-faceted is what the agent should be: it shows its
- * sources, holds to its rules and turns one request into many sides of an answer.
+ * The name. A kestrel is a small falcon that hovers in one spot, head perfectly still, watching the
+ * ground until something moves. That is the product: you tell it once what to watch, it keeps
+ * looking, and it tells you when something changed.
  * Change it here and it changes everywhere in the interface and in the agent's instructions.
- *
- * Not renamed, on purpose: the storage keys in the browser ("kestrel.*") keep the first working
- * title, so people's saved settings survive. It was Kestrel, then Baton (until 14 Nov).
  */
 export const APP_NAME = "Kestrel";
-export const APP_TAGLINE = "Your internet butler";
+export const APP_TAGLINE = "Watches the web for you";
 export const APP_DESCRIPTION =
-  "Tell Kestrel what you need. It searches the live web, shows you the answer, and can finish the job in a browser while you watch.";
+  "Tell Kestrel once what to watch. It searches the live web, checks every page against what you asked for, keeps watching, and tells you when something changes, with the before, the after and the source.";
 
 /**
- * The logo: a cut kestrel seen from above. Kestrel crystals are six-sided, so the stone is a hexagon:
- * a flat table in the middle and six facets round it, lit from the upper left. The two facets
- * that face the light are brightest, the two that face away are darkest.
+ * The logo: a kestrel hovering, seen from the front. Wings up, tail fanned, body still. It is cut
+ * from flat shapes with a thin gap between them, lit from the upper left, so the left wing is the
+ * brightest.
  *
  * Drawn in a 32 by 32 box. The same shapes are used by the logo in the interface
- * (components/brand/logo.tsx), the Apple touch icon (app/apple-icon.tsx), the installed app's
- * icons (scripts/make-icons.cjs) and, copied by hand because they are static files, the favicon
- * (app/icon.svg) and the desktop app's "cannot reach the server" page. Change them together.
+ * (components/brand/logo.tsx), the call's mark (components/voice/orb.tsx), the Apple touch icon
+ * (app/apple-icon.tsx), the installed app's icons and the link preview (scripts/make-icons.cjs)
+ * and, copied by hand because it is a static file, the favicon (app/icon.svg). Change them together.
+ *
+ * The two names below are kept from the first mark so nothing that draws the logo had to change:
+ * `facets` are the feathers and `table` is the body.
  */
 export const LOGO = {
-  /** The six facets, clockwise from the upper right, each with how much light it catches. */
+  /** The feathers, clockwise from the upper right: wing tip, wing, tail, then the same on the left. Each with how much light it catches. */
   facets: [
-    { d: "M16.42 5.81 24.62 10.55 21.01 12.62 16.42 9.97Z", opacity: 0.62 },
-    { d: "M25.03 11.27 25.03 20.73 21.43 18.66 21.43 13.34Z", opacity: 0.4 },
-    { d: "M24.62 21.45 16.42 26.19 16.42 22.03 21.01 19.38Z", opacity: 0.4 },
-    { d: "M15.58 26.19 7.38 21.45 10.99 19.38 15.58 22.03Z", opacity: 0.62 },
-    { d: "M6.97 20.73 6.97 11.27 10.57 13.34 10.57 18.66Z", opacity: 0.92 },
-    { d: "M7.38 10.55 15.58 5.81 15.58 9.97 10.99 12.62Z", opacity: 0.92 },
+    { d: "M23.00 7.00 27.60 5.60 26.10 11.20 23.75 15.20Z", opacity: 0.68 },
+    { d: "M18.80 12.60 22.30 7.90 23.00 15.70 18.70 19.60Z", opacity: 0.86 },
+    { d: "M18.15 20.40 22.40 24.40 17.95 26.50Z", opacity: 0.62 },
+    { d: "M13.85 20.40 9.60 24.40 14.05 26.50Z", opacity: 0.72 },
+    { d: "M13.20 12.60 9.70 7.90 9.00 15.70 13.30 19.60Z", opacity: 0.96 },
+    { d: "M9.00 7.00 4.40 5.60 5.90 11.20 8.25 15.20Z", opacity: 0.82 },
   ],
-  /** The table: the flat top of the stone. */
-  table: "M16.00 11.60 19.81 13.80 19.81 18.20 16.00 20.40 12.19 18.20 12.19 13.80Z",
+  /** The body: head at the top, the middle tail feather at the bottom. */
+  table: "M16.00 8.90 18.00 10.70 18.20 13.20 17.50 19.80 17.10 26.40 14.90 26.40 14.50 19.80 13.80 13.20 14.00 10.70Z",
   /** Corner radius of the tile behind the mark. */
   radius: 9,
-  /** Fixed colours for files that cannot read the theme (favicon, touch icon, app icons): the light theme's emerald and ivory. */
-  tile: "#004935",
-  ink: "#f5fcf8",
+  /** Fixed colours for files that cannot read the theme (favicon, touch icon, app icons, link preview): amber on deep navy. */
+  tile: "#172a4e",
+  ink: "#fab549",
 } as const;

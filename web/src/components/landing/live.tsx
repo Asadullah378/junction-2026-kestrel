@@ -5,20 +5,17 @@ import { cn } from "@/lib/utils";
 
 /*
  * The app's own cards, running on the landing page. Each one is the real widget a chat shows,
- * given sample data (the fixtures the widget gallery uses), so a visitor can hover a chart, pan
- * the map or switch a filter before they have an account.
+ * given sample data (the fixtures the widget gallery uses), so a visitor can pan the map or tick
+ * a wish before they have an account.
  *
- * Three things keep that honest and light:
+ * Two things keep that honest and light:
  * - A card's code is fetched only when it comes near the screen, and its place is held at a
  *   fixed height meanwhile, so nothing loads up front and nothing jumps.
- * - The page is public and signed out: nothing here may call our API. The price card would ask
- *   the server for fresh quotes every half minute; on this page those requests never leave the
- *   browser (see `keepToThePage`). It is answered with the sample quote moved by a few cents, so
- *   the card ticks the way it does in the app. The page says the numbers are examples.
- * - A card whose buttons would act for an account (the job's "Run now") is made inert.
+ * - The page is public and signed out: nothing here may call our API. A request a card makes to
+ *   it never leaves the browser (see `keepToThePage`). The page says the data is sample data.
  */
 
-export type DemoName = "places" | "weather" | "stocks" | "flights" | "products" | "market" | "sift" | "research" | "job";
+export type DemoName = "places" | "weather" | "sift" | "research";
 
 type Demo = React.ComponentType;
 
@@ -35,37 +32,12 @@ const LOADERS: Record<DemoName, () => Promise<Demo>> = {
       return <Weather data={weatherFixture} />;
     };
   },
-  stocks: async () => {
-    const [{ Stocks }, { stocksFixture }] = await Promise.all([import("@/components/widgets/stocks"), import("@/lib/widgets/fixtures/stocks")]);
-    for (const quote of stocksFixture.quotes) sampleQuotes.set(quote.symbol.toUpperCase(), { ...quote, series: [] });
-    return function StocksDemo() {
-      return <Stocks data={stocksFixture} />;
-    };
-  },
-  flights: async () => {
-    const [{ Flights }, { flightsFixture }] = await Promise.all([import("@/components/widgets/flights"), import("@/lib/widgets/fixtures/flights")]);
-    return function FlightsDemo() {
-      return <Flights data={flightsFixture} />;
-    };
-  },
-  products: async () => {
-    const [{ Products }, { productsFixture }] = await Promise.all([import("@/components/widgets/products"), import("@/lib/widgets/fixtures/products")]);
-    return function ProductsDemo() {
-      return <Products data={productsFixture} />;
-    };
-  },
-  market: async () => {
-    const [{ PredictionMarket }, { marketFixture }] = await Promise.all([import("@/components/widgets/market"), import("@/lib/widgets/fixtures/market")]);
-    // Without its market's name the card shows what it was given and asks nobody for more.
-    const data = { ...marketFixture, slug: undefined };
-    return function MarketDemo() {
-      return <PredictionMarket data={data} />;
-    };
-  },
   sift: async () => {
     const [{ Sift }, { siftFixture }] = await Promise.all([import("@/components/widgets/sift"), import("@/lib/widgets/fixtures/sift")]);
+    // The sample was timed on another search service: the page states no speeds, so the card shows none.
+    const data = { ...siftFixture, judgedMs: undefined };
     return function SiftDemo() {
-      return <Sift data={siftFixture} />;
+      return <Sift data={data} />;
     };
   },
   research: async () => {
@@ -74,29 +46,18 @@ const LOADERS: Record<DemoName, () => Promise<Demo>> = {
       return <Research data={researchFixture} />;
     };
   },
-  job: async () => {
-    const [{ JobCard }, { jobCreatedFixture }] = await Promise.all([import("@/components/widgets/job-card"), import("@/lib/widgets/fixtures/job")]);
-    return function JobDemo() {
-      return <JobCard data={jobCreatedFixture} />;
-    };
-  },
 };
 
-/** Cards whose controls would act for an account: shown, not usable. */
-const INERT = new Set<DemoName>(["job"]);
+/** Cards whose controls would act for an account: shown, not usable. None at the moment. */
+const INERT = new Set<DemoName>();
 
 const loaded = new Map<DemoName, Demo>();
 
 /* ───────── Nothing here calls the server ───────── */
 
-type SampleQuote = { symbol: string; price: number; change: number; changePercent: number; previousClose?: number; series: unknown[] };
-const sampleQuotes = new Map<string, SampleQuote>();
 let kept = false;
 
-/**
- * Requests to our own API never leave this page. The one a card makes by itself (fresh prices) is
- * answered here from the sample data, nudged a little each time; anything else gets an empty answer.
- */
+/** Requests to our own API never leave this page: a card that asks for something gets an empty answer. */
 function keepToThePage() {
   if (kept || typeof window === "undefined") return;
   kept = true;
@@ -111,14 +72,7 @@ function keepToThePage() {
     // Only while the landing page is what is on screen: a visitor who goes on to sign in from
     // here stays in the same page session, and from then on every request must go out as usual.
     if (!url || url.origin !== window.location.origin || !url.pathname.startsWith("/api/") || !document.querySelector(".landing")) return real(input, init);
-    const quote = url.pathname === "/api/live/stock" ? sampleQuotes.get((url.searchParams.get("symbol") ?? "").toUpperCase()) : undefined;
-    if (!quote) return Promise.resolve(new Response(null, { status: 204 }));
-    // A step of a few hundredths of a percent, as a quiet market moves between two looks.
-    const price = Math.round(quote.price * (1 + (Math.random() - 0.5) * 0.0012) * 100) / 100;
-    const base = quote.previousClose ?? quote.price - quote.change;
-    const next = { ...quote, price, change: Math.round((price - base) * 100) / 100, changePercent: Math.round(((price - base) / base) * 10000) / 100 };
-    sampleQuotes.set(quote.symbol.toUpperCase(), next);
-    return Promise.resolve(new Response(JSON.stringify(next), { headers: { "content-type": "application/json" } }));
+    return Promise.resolve(new Response(null, { status: 204 }));
   };
 }
 

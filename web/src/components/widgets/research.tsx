@@ -137,7 +137,7 @@ export function Research({ data, loading }: WidgetProps<ResearchData>) {
 /* ───────────────────────── Copy and download ───────────────────────── */
 
 const today = () => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-const credit = () => `Researched with ${APP_NAME}, which searches the live web with Exa. Check important details at the source before you act.`;
+const credit = () => `Researched with ${APP_NAME}, which searches the live web with Context.dev. Check important details at the source before you act.`;
 
 /** The report as a markdown file: the question as the title, the report, then a numbered source list. */
 function reportMarkdown(question: string, report: string, sources: Source[]) {

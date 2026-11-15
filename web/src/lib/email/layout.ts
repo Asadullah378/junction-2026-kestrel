@@ -8,11 +8,11 @@ import { siteUrl } from "@/lib/site";
  * and inline styles, and it reads well in a light and a dark inbox alike.
  */
 
-const INK = "#16201c";
-const MUTED = "#5d6b65";
-const LINE = "#e3e9e5";
-const BRAND = "#1f7a57";
-const PAPER = "#f4f7f5";
+const INK = "#111826";
+const MUTED = "#5a616c";
+const LINE = "#e4e5e9";
+const BRAND = "#172a4e";
+const PAPER = "#f5f4f0";
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
 export const escapeHtml = (text: string): string => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
