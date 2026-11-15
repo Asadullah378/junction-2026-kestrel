@@ -83,3 +83,10 @@ Described in `DEPLOYMENT.md`: Google Cloud project `kestrel-contextdev`, `europe
 ## The film (`video/`)
 
 A Remotion project, kept on one machine and out of git. Every draft in `video/drafts/` is kept: a new draft gets the next number and never replaces or deletes an older one, and each draft's source stays renderable. The interface in it is redrawn and labelled as such.
+
+The full tour (`video/drafts/kestrel-tour-N.mp4`) is the second film: real recordings of the local app, one clip per feature, each behind a card with its narration.
+
+- Record: start the app with `pnpm exec next dev --port 3400 < /dev/null` from `web/`, then `web/node_modules/.bin/electron video/scripts/kestrel-capture.cjs [--fresh] <shot> ...` from the repository root. The shots are in `video/scripts/kestrel-shots.cjs`; a clip is real time or the recorder says so. `CAPTURE_PROFILE` and `CAPTURE_EMAIL` give a second copy its own browser profile and account, to record two shots at once.
+- If the page reloads in a loop while recording, the dev server is rebuilding on file-change events that did not happen (seen on 15 Nov at 06:35). Add `watchOptions: { pollIntervalMs: 1500 }` to `web/next.config.ts` for the recording and take it out afterwards; do not commit it.
+- Join, from `video/`: `node scripts/kestrel-tour.mjs` (gathers the clips), `node scripts/kestrel-tour-audio.mjs` (mixes the sound and prints the frame count), then render `Kestrel-tour` in two halves with `--frames=a-b --muted` and join them with the sound by ffmpeg. Start the second render only once the first has finished bundling.
+- The watch clip is filmed on the demo shop at `localhost`, which development reads directly: its label in the film says so. The recorder's accounts are throwaway ones on `delivered+...@resend.dev`; delete them afterwards (`node video/scripts/kestrel-account.mjs delete <email>`), or their watches look every hour whenever a local server runs.
