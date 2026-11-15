@@ -56,7 +56,7 @@ Everything goes through `web/src/lib/sources/oxylabs.ts`. Which Web API endpoint
 | `POST /v1/scrape` with `output: ["markdown"]` and `run_js` | The second reader. A page Context.dev cannot read (blocked, or empty without JavaScript) is tried once in a browser. A page neither can read is reported as unread. |
 | `POST /v1/search` with `location` | A search as someone in another country would see it, when the answer depends on where you look from. |
 
-The cheapest offer per country is picked by plain code, not by a model (`web/src/lib/agent/tools/shopping.ts`). Real shop listings are full of cases, spare parts, used goods and the odd wild price, so an offer counts only if its title names the product, it is not second-hand, and its price lies in the band where most of the money is.
+The cheapest offer per country is picked by plain code, not by a model (`web/src/lib/agent/tools/offers.ts`, with a table test of 38 cases: `pnpm test:offers`). Real shop listings are full of cases, spare parts, used goods and the odd wild price, so an offer counts only if its title carries the product's name in one piece, it is new and from a shop, and its price lies in the band where the shops' money is. Every rule answers a wrong "cheapest" seen on a real listing: a pair of headphones at CHF 18,185, a pawn shop's price in Poland, a Nintendo Switch 2019 passing for a Switch 2. A country outside the euro is held against the euro countries' band with a rough exchange rate; that rate is never shown and never used to compare prices. A country whose listing has only cases and spare parts is reported as having no offer.
 
 ## What Gemini and Claude do
 
