@@ -1,0 +1,41 @@
+# Checks on every push: the type check, the lint and the tests that need no keys and no server.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Type check, lint, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    env:
+      # Electron is only used to draw the icons; its binary is not needed here.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # A fresh checkout has no generated route types; the type check needs them.
+      - run: pnpm exec next typegen
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test:diff
