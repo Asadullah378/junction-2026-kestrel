@@ -13,9 +13,9 @@ const BASE_URL = "https://api.exa.ai";
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_MAX = 300;
 
-export type ExaMeter = {
+export type WebMeter = {
   /** Add the cost of one Exa call. */
-  addExa(costUsd: number, kind: "search" | "contents" | "agent" | "answer"): void;
+  addWeb(costUsd: number, kind: "search" | "read" | "extract" | "watch"): void;
 };
 
 export type ExaEntity = {
@@ -163,7 +163,7 @@ function gate(concurrent: number, perSecond: number) {
 
 /** How many requests this server has sent to Exa since it started. A plain count, for the health check and for tests. */
 let sent = 0;
-export const exaRequestsSent = () => sent;
+export const webRequestsSent = () => sent;
 
 /** Kept a little under Exa's limits, so a retry or another server on the same key still has room. */
 const searchTurn = gate(8, 8);
@@ -214,7 +214,7 @@ async function request<T>(
 /** Web search. Results carry highlights or text when `contents` asks for them. */
 export async function exaSearch(
   body: ExaSearchRequest,
-  opts: { meter?: ExaMeter; signal?: AbortSignal; cache?: boolean } = {},
+  opts: { meter?: WebMeter; signal?: AbortSignal; cache?: boolean } = {},
 ): Promise<ExaSearchResponse> {
   const key = "search:" + JSON.stringify(body);
   if (opts.cache !== false) {
@@ -222,7 +222,7 @@ export async function exaSearch(
     if (hit) return hit;
   }
   const res = await request<ExaSearchResponse>("/search", { method: "POST", body: { type: "auto", ...body }, signal: opts.signal });
-  opts.meter?.addExa(res.costDollars?.total ?? 0, "search");
+  opts.meter?.addWeb(res.costDollars?.total ?? 0, "search");
   if (opts.cache !== false) cacheSet(key, res);
   return res;
 }
@@ -230,7 +230,7 @@ export async function exaSearch(
 /** Fetch page contents for known URLs. */
 export async function exaContents(
   body: { urls: string[]; text?: boolean | { maxCharacters?: number }; highlights?: boolean | { query?: string }; maxAgeHours?: number },
-  opts: { meter?: ExaMeter; signal?: AbortSignal; cache?: boolean } = {},
+  opts: { meter?: WebMeter; signal?: AbortSignal; cache?: boolean } = {},
 ): Promise<ExaContentsResponse> {
   const key = "contents:" + JSON.stringify(body);
   if (opts.cache !== false) {
@@ -238,7 +238,7 @@ export async function exaContents(
     if (hit) return hit;
   }
   const res = await request<ExaContentsResponse>("/contents", { method: "POST", body, signal: opts.signal });
-  opts.meter?.addExa(res.costDollars?.total ?? 0, "contents");
+  opts.meter?.addWeb(res.costDollars?.total ?? 0, "read");
   if (opts.cache !== false) cacheSet(key, res);
   return res;
 }
@@ -256,7 +256,7 @@ export async function exaAgentRun(
     systemPrompt?: string;
     dataSources?: Array<{ provider: string }>;
   },
-  opts: { meter?: ExaMeter; signal?: AbortSignal; deadlineMs?: number; onPoll?: (elapsedMs: number) => void } = {},
+  opts: { meter?: WebMeter; signal?: AbortSignal; deadlineMs?: number; onPoll?: (elapsedMs: number) => void } = {},
 ): Promise<ExaAgentRun> {
   const key = "agent:" + JSON.stringify(body);
   const hit = cacheGet<ExaAgentRun>(key);
@@ -277,7 +277,7 @@ export async function exaAgentRun(
     run = await request<ExaAgentRun>(`/agent/runs/${created.id}`, { method: "GET", signal: opts.signal, timeoutMs: 15_000 });
     opts.onPoll?.(Date.now() - started);
   }
-  opts.meter?.addExa(run.costDollars?.total ?? 0, "agent");
+  opts.meter?.addWeb(run.costDollars?.total ?? 0, "extract");
   if (run.status !== "completed") {
     const message = typeof run.error === "string" ? run.error : run.error?.message;
     throw new ExaError(message ?? `The live data lookup ended with status ${run.status}.`, 502);

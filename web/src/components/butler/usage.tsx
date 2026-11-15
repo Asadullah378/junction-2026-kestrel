@@ -4,7 +4,7 @@ import * as React from "react";
 import { RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMode } from "@/lib/agent/modes";
-import { SPEND_LABELS, exaCallCount, hasFigures, isVoice, summarise, totalSpend, type RunStats, type Spend, type UsageSummary } from "@/lib/agent/stats";
+import { SPEND_LABELS, webCallCount, hasFigures, isVoice, summarise, totalSpend, type RunStats, type Spend, type UsageSummary } from "@/lib/agent/stats";
 import { useUser } from "@/lib/auth/client";
 import type { Source } from "@/lib/widgets/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -33,7 +33,7 @@ export function RunFooter({ stats, sources, copy, onRetry, busy }: { stats?: Run
   const { showUsage } = useUser();
   const seconds = (stats?.durationMs ?? 0) / 1000;
   const usage = summarise(stats);
-  const calls = exaCallCount(usage.exaCalls);
+  const calls = webCallCount(usage.webCalls);
   // Old answers, and the answers of an account that may not see usage, carry no figures.
   const figures = showUsage && hasFigures(stats);
   const mode = stats ? (isVoice(stats) ? "voice" : stats.mode) : undefined;
@@ -53,7 +53,7 @@ export function RunFooter({ stats, sources, copy, onRetry, busy }: { stats?: Run
         <>
           <Dot />
           <span>
-            {calls} Exa {calls === 1 ? "call" : "calls"}
+            {calls} web {calls === 1 ? "call" : "calls"}
           </span>
         </>
       ) : null}
@@ -100,17 +100,17 @@ export function RunFooter({ stats, sources, copy, onRetry, busy }: { stats?: Run
  * Kinds that were not used are left out.
  */
 export function UsageBreakdown({ usage, title }: { usage: UsageSummary; title?: string }) {
-  const { spend, llmTokens, voiceTokens, exaCalls: c } = usage;
+  const { spend, llmTokens, voiceTokens, webCalls: c } = usage;
   const count = (n: number, one: string, many: string) => (n ? `${n} ${n === 1 ? one : many}` : "");
   const detail: Record<keyof Spend, string> = {
     llm: `${fmtTokens(llmTokens.in)} tokens in, ${fmtTokens(llmTokens.out)} out${llmTokens.cached ? `, ${fmtTokens(llmTokens.cached)} from cache` : ""}`,
-    exa: [count(c.search, "search", "searches"), count(c.contents, "page read", "page reads"), count(c.agent, "live lookup", "live lookups"), count(c.answer, "answer", "answers")].filter(Boolean).join(", "),
+    web: [count(c.search, "search", "searches"), count(c.read, "page read", "page reads"), count(c.extract, "extraction", "extractions"), count(c.watch, "watch check", "watch checks")].filter(Boolean).join(", "),
     voice: `${fmtTokens(voiceTokens.in)} tokens heard, ${fmtTokens(voiceTokens.out)} spoken`,
     decisions: count(usage.decisionCalls, "round of checks", "rounds of checks"),
   };
   const used: Record<keyof Spend, boolean> = {
     llm: llmTokens.in + llmTokens.out > 0 || spend.llm > 0,
-    exa: exaCallCount(c) > 0 || spend.exa > 0,
+    web: webCallCount(c) > 0 || spend.web > 0,
     voice: voiceTokens.in + voiceTokens.out > 0 || spend.voice > 0,
     decisions: usage.decisionCalls > 0 || spend.decisions > 0,
   };

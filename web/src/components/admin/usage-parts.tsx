@@ -13,11 +13,11 @@ import { count, share, usd } from "./format";
  */
 
 /** The four kinds of cost, in the order the bars are stacked. One colour each, everywhere in the admin area. */
-const COLORS: Record<keyof Spend, string> = { llm: "var(--chart-1)", exa: "var(--chart-2)", voice: "var(--chart-3)", decisions: "var(--chart-4)" };
+const COLORS: Record<keyof Spend, string> = { llm: "var(--chart-1)", web: "var(--chart-2)", voice: "var(--chart-3)", decisions: "var(--chart-4)" };
 export const SPEND_KINDS = SPEND_LABELS.map(({ key, label }) => ({ key, name: label, color: COLORS[key] }));
 
 /** What each kind covers, for the line under a split. */
-export const SPEND_MEANING = "LLMs are the answering models and their sub-agents, Exa is search and reading, Voice is live calls and voice input, Decisions is checking pages against wishes.";
+export const SPEND_MEANING = "LLMs are the answering models and their sub-agents, Web data is search, reading and watching, Voice is live calls and voice input, Decisions is checking pages against wishes.";
 
 export { totalSpend };
 

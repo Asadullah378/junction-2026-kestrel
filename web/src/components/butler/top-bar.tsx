@@ -9,7 +9,7 @@ import { Logo } from "@/components/brand/logo";
 import { useHydrated } from "@/lib/use-client";
 import { useBrowser } from "@/lib/browser/client";
 import { useBrowserLayout } from "@/components/browser/workspace";
-import { NO_USAGE, addSummaries, exaCallCount, hasFigures, summarise, totalSpend, type RunStats, type UsageSummary } from "@/lib/agent/stats";
+import { NO_USAGE, addSummaries, webCallCount, hasFigures, summarise, totalSpend, type RunStats, type UsageSummary } from "@/lib/agent/stats";
 import { useUser } from "@/lib/auth/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -145,7 +145,7 @@ function BrowserButton() {
 /** What the conversation has cost so far; the breakdown by kind is one press away. Only for accounts that may see usage. */
 function UsageMeter({ usage }: { usage: UsageSummary }) {
   const tokens = usage.llmTokens.in + usage.llmTokens.out + usage.voiceTokens.in + usage.voiceTokens.out;
-  const calls = exaCallCount(usage.exaCalls);
+  const calls = webCallCount(usage.webCalls);
   return (
     <Popover>
       <PopoverTrigger
@@ -156,7 +156,7 @@ function UsageMeter({ usage }: { usage: UsageSummary }) {
         <span className="hidden text-border @min-[660px]/chat:inline">|</span>
         <span className="hidden @min-[660px]/chat:inline">{tokens >= 1000 ? `${(tokens / 1000).toFixed(1)}k` : tokens} tokens</span>
         <span className="hidden text-border @min-[740px]/chat:inline">|</span>
-        <span className="hidden @min-[740px]/chat:inline">{calls} Exa</span>
+        <span className="hidden @min-[740px]/chat:inline">{calls} web</span>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-0 text-[0.8rem]">
         <UsageBreakdown usage={usage} title="This conversation" />

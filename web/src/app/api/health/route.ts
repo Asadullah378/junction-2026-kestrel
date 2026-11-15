@@ -1,5 +1,5 @@
 import { databaseReady } from "@/lib/db/start";
-import { exaRequestsSent } from "@/lib/exa/client";
+import { webRequestsSent } from "@/lib/exa/client";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,7 @@ export async function GET() {
     upSeconds: Math.round((Date.now() - started) / 1000),
     // How many searches and page reads the server has sent since it started: a number that stops
     // moving when nothing is working, which is how a stopped task is seen to have stopped.
-    searchesSent: exaRequestsSent(),
+    searchesSent: webRequestsSent(),
   };
   return Response.json(body, { status: body.ok ? 200 : 503, headers: { "cache-control": "no-store" } });
 }

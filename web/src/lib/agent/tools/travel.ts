@@ -168,7 +168,7 @@ export function searchFlightsTool(ctx: ToolContext) {
           options: tagFlights(options),
           note: result.data.note,
           sources: result.sources,
-          exaCostUsd: result.costUsd,
+          webCostUsd: result.costUsd,
           error: options.length === 0 ? "No flights came back for those dates. Try nearby dates or airports." : undefined,
         };
       } catch (err) {
@@ -317,7 +317,7 @@ export function searchHotelsTool(ctx: ToolContext) {
           options,
           note: result.data.note,
           sources: result.sources,
-          exaCostUsd: result.costUsd,
+          webCostUsd: result.costUsd,
           error: options.length === 0 ? "No hotels came back for those dates. Try different dates or a wider area." : undefined,
         };
       } catch (err) {

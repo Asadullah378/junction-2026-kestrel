@@ -217,7 +217,7 @@ async function work(job: JobToRun, account: Account, cap: Cap, entry: Running): 
   let capHit = false;
   let finishedUsage: TokenUsage = { ...EMPTY_USAGE };
   let recorded = false;
-  const unrecorded = () => (recorded ? 0 : costOf(info.id, finishedUsage) + meter.exaCostUsd + meter.workerCostUsd + meter.decisionCostUsd);
+  const unrecorded = () => (recorded ? 0 : costOf(info.id, finishedUsage) + meter.webCostUsd + meter.workerCostUsd + meter.decisionCostUsd);
   entry.spent = unrecorded;
   const overCap = async ({ steps: finished }: { steps: Array<{ usage: Parameters<typeof toTokenUsage>[0] }> }) => {
     finishedUsage = finished.reduce((sum, step) => addUsage(sum, toTokenUsage(step.usage)), { ...EMPTY_USAGE });
@@ -294,7 +294,7 @@ async function work(job: JobToRun, account: Account, cap: Cap, entry: Running): 
   };
   recorded = true;
   await recordUsage({ userId: account.id, conversationId: job.id, client: "web", model: { id: info.id, label: info.label }, kind: "job", stats });
-  const costUsd = round((stats.llmCostUsd ?? 0) + (stats.workerCostUsd ?? 0) + (stats.exaCostUsd ?? 0) + (stats.decisionCostUsd ?? 0));
+  const costUsd = round((stats.llmCostUsd ?? 0) + (stats.workerCostUsd ?? 0) + (stats.webCostUsd ?? 0) + (stats.decisionCostUsd ?? 0));
   if (capHit) problem = "It stopped part-way: the account reached its usage limit.";
 
   const answer = final.filter((m) => m.role === "assistant");

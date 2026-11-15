@@ -137,7 +137,7 @@ export const researchStandardFixture: ResearchData = {
   agents: [prices, heatPumps, electricity, upfront],
   report: REPORT,
   sources: allSources,
-  exaCostUsd: 0.42,
+  webCostUsd: 0.42,
 };
 
 export const researchStandardLoadingFixture: ResearchData = {

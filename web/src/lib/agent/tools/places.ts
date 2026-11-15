@@ -165,7 +165,7 @@ export function findPlacesTool(ctx: ToolContext) {
           places,
           origin: showOrigin ? origin : undefined,
           sources: places.map((p) => toSource({ url: p.url, title: `${p.name} (Exa Places)` })),
-          exaCostUsd: res.costDollars?.total,
+          webCostUsd: res.costDollars?.total,
           error: places.length === 0 ? `No places found for "${query}" ${aroundUser ? "near you" : `near ${near}`}. Try a broader description or a larger area.` : undefined,
         };
       } catch (err) {
@@ -242,7 +242,7 @@ export function getWeatherTool(ctx: ToolContext) {
           location: name,
           days,
           sources: page ? [toSource({ url: page.url, title: `${name} forecast (Open-Meteo via Exa)` })] : [],
-          exaCostUsd: res.costDollars?.total,
+          webCostUsd: res.costDollars?.total,
           error: days.length === 0 ? `No forecast found for ${location}.` : undefined,
         };
       } catch (err) {

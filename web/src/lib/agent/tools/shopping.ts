@@ -139,7 +139,7 @@ export function searchProductsTool(ctx: ToolContext) {
           products,
           verdict: output.verdict,
           sources: res.results.filter((r) => used.has(r.url)).map((r) => toSource({ ...r, snippet: clip(r.highlights?.[0], 240) || undefined })),
-          exaCostUsd: res.costDollars?.total,
+          webCostUsd: res.costDollars?.total,
           error: products.length === 0 ? "Could not find matching products with enough detail." : undefined,
         };
       } catch (err) {

@@ -202,7 +202,7 @@ try {
   r = await adaWeb.get(`/api/admin/users/${bo.id}/usage`);
   check("one account's usage is the admin's to see, nobody else's", r.status === 403, say(r));
   r = await admin.get(`/api/admin/users/${ada.id}/usage?days=30`);
-  const kinds = ["llm", "exa", "voice", "decisions"];
+  const kinds = ["llm", "web", "voice", "decisions"];
   check(
     "the admin sees it by kind of cost, by mode and by model",
     r.status === 200 && r.json?.days === 30 && kinds.every((k) => typeof r.json?.period?.[k] === "number" && typeof r.json?.allTime?.[k] === "number") && Array.isArray(r.json?.byMode) && Array.isArray(r.json?.byModel),
@@ -303,7 +303,7 @@ try {
   const before = r.json?.conversations?.total;
   check("the admin's overview answers", r.status === 200 && typeof before === "number" && Array.isArray(r.json?.daily) && r.json.daily.length === 14, say(r));
   check(
-    "with the cost by kind (LLMs, Exa, voice, decisions), by mode and by model",
+    "with the cost by kind (LLMs, web data, voice, decisions), by mode and by model",
     kinds.every((k) => typeof r.json?.period?.[k] === "number" && typeof r.json?.allTime?.[k] === "number" && typeof r.json?.daily?.[0]?.[k] === "number") && Array.isArray(r.json?.byMode) && Array.isArray(r.json?.byModel),
     JSON.stringify(r.json?.period),
   );

@@ -2,7 +2,7 @@ import "server-only";
 
 import { tool } from "ai";
 import { z } from "zod";
-import { exaContents, exaSearch, type ExaMeter } from "@/lib/exa/client";
+import { exaContents, exaSearch, type WebMeter } from "@/lib/exa/client";
 import { toSource, type MarketOutcome, type PredictionMarketData, type PricePoint, type Source, type StockQuote, type StocksData } from "@/lib/widgets/types";
 import { clip, errorMessage, type ToolContext } from "./context";
 import { runStructured } from "./structured";
@@ -113,7 +113,7 @@ function titleName(raw: string): string {
     .join(" ");
 }
 
-export async function fetchStockQuote(symbolInput: string, opts: { meter?: ExaMeter; signal?: AbortSignal } = {}): Promise<StockQuote> {
+export async function fetchStockQuote(symbolInput: string, opts: { meter?: WebMeter; signal?: AbortSignal } = {}): Promise<StockQuote> {
   const symbol = symbolInput.trim().toUpperCase().replace(/[^A-Z.\-]/g, "");
   if (!symbol) throw new Error("No ticker symbol given.");
   const url = `https://exa.ai/library/markets/stocks/${symbol}`;

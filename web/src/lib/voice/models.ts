@@ -51,5 +51,5 @@ export const ANSWERED_BY_APP = ["requestLocation", "requestUserAction", "browser
 export type VoiceToolEvent =
   | { type: "progress"; output: unknown }
   /** `spent`: what the tool itself cost (Exa calls, sub-agents), for the answer's figures. */
-  | { type: "result"; output: unknown; text: string; spent?: { exaCostUsd?: number; workerCostUsd?: number; decisionCostUsd?: number; decisionCalls?: number; exaCalls?: { search: number; contents: number; agent: number; answer: number } } }
+  | { type: "result"; output: unknown; text: string; spent?: { webCostUsd?: number; workerCostUsd?: number; decisionCostUsd?: number; decisionCalls?: number; webCalls?: { search: number; read: number; extract: number; watch: number } } }
   | { type: "error"; error: string };

@@ -54,7 +54,7 @@ export function webSearchTool(ctx: ToolContext) {
           { meter: ctx.meter, signal: abortSignal },
         );
         const results = res.results.map(toSearchItem);
-        return { kind: "search", query: input.query, results, sources: results, exaCostUsd: res.costDollars?.total };
+        return { kind: "search", query: input.query, results, sources: results, webCostUsd: res.costDollars?.total };
       } catch (err) {
         return { kind: "search", query: input.query, results: [], sources: [], error: errorMessage(err) };
       }
@@ -102,7 +102,7 @@ export function readPagesTool(ctx: ToolContext) {
           kind: "pages",
           pages,
           sources: pages.map(({ url, title, domain, favicon, publishedDate }) => ({ url, title, domain, favicon, publishedDate })),
-          exaCostUsd: res.costDollars?.total,
+          webCostUsd: res.costDollars?.total,
           error: pages.length === 0 ? `Could not read ${failed.join(", ") || "those pages"}.` : undefined,
         };
       } catch (err) {
@@ -158,7 +158,7 @@ export function searchImagesTool(ctx: ToolContext) {
           }
         }
         const sources = res.results.filter((r) => images.some((i) => i.pageUrl === r.url)).map((r) => toSource(r));
-        return { kind: "images", query, images, sources, exaCostUsd: res.costDollars?.total, error: images.length === 0 ? "No images found for that." : undefined };
+        return { kind: "images", query, images, sources, webCostUsd: res.costDollars?.total, error: images.length === 0 ? "No images found for that." : undefined };
       } catch (err) {
         return { kind: "images", query, images: [], sources: [], error: errorMessage(err) };
       }

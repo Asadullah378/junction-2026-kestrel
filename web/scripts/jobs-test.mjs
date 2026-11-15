@@ -106,7 +106,7 @@ try {
   ok("the job lists the run, and Run now did not count as a scheduled run", detail.runs?.length === 1 && detail.runs[0].trigger === "manual" && detail.job.runCount === 0);
   const notices = await (await user("/api/notifications")).json().catch(() => ({}));
   ok("a notice about the result is in the app", (notices.items ?? []).some((n) => n.kind === "job_done" && n.runId === runId));
-  const [used] = await sql`select count(*)::int as rows, coalesce(sum(llm_cost_usd + worker_cost_usd + exa_cost_usd + decision_cost_usd), 0)::float as usd from usage_events where user_id = ${userId} and kind = 'job'`;
+  const [used] = await sql`select count(*)::int as rows, coalesce(sum(llm_cost_usd + worker_cost_usd + web_cost_usd + decision_cost_usd), 0)::float as usd from usage_events where user_id = ${userId} and kind = 'job'`;
   ok("the run is on the account's usage record as a job", used.rows === 1 && Math.abs(used.usd - run.costUsd) < 0.0001, `${used.rows} row, $${used.usd}`);
 
   /* ───────── Changed from the page, then by the agent ───────── */

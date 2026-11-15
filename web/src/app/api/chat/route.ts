@@ -153,7 +153,7 @@ export async function POST(req: Request) {
   /** What the answering model has used in the steps finished so far. */
   let finishedUsage: TokenUsage = { ...EMPTY_USAGE };
   let recorded = false;
-  const unrecorded = () => (recorded ? 0 : costOf(info.id, finishedUsage) + meter.exaCostUsd + meter.workerCostUsd + meter.decisionCostUsd);
+  const unrecorded = () => (recorded ? 0 : costOf(info.id, finishedUsage) + meter.webCostUsd + meter.workerCostUsd + meter.decisionCostUsd);
   const overCap = async ({ steps: done }: { steps: Array<{ usage: Parameters<typeof toTokenUsage>[0] }> }) => {
     finishedUsage = done.reduce((sum, step) => addUsage(sum, toTokenUsage(step.usage)), { ...EMPTY_USAGE });
     if (cap.capUsd === null) return false;
@@ -311,18 +311,18 @@ function addStats(earlier: RunStats | undefined, now: RunStats): RunStats {
     llmCostUsd: round(sum(earlier.llmCostUsd, now.llmCostUsd)),
     workerUsage: usage(earlier.workerUsage, now.workerUsage),
     workerCostUsd: round(sum(earlier.workerCostUsd, now.workerCostUsd)),
-    exaCostUsd: round(sum(earlier.exaCostUsd, now.exaCostUsd)),
+    webCostUsd: round(sum(earlier.webCostUsd, now.webCostUsd)),
     decisionCostUsd: earlier.decisionCalls || now.decisionCalls ? round(sum(earlier.decisionCostUsd, now.decisionCostUsd)) : undefined,
     decisionCalls: sum(earlier.decisionCalls, now.decisionCalls) || undefined,
-    exaCalls:
-      earlier.exaCalls && now.exaCalls
+    webCalls:
+      earlier.webCalls && now.webCalls
         ? {
-            search: earlier.exaCalls.search + now.exaCalls.search,
-            contents: earlier.exaCalls.contents + now.exaCalls.contents,
-            agent: earlier.exaCalls.agent + now.exaCalls.agent,
-            answer: earlier.exaCalls.answer + now.exaCalls.answer,
+            search: earlier.webCalls.search + now.webCalls.search,
+            read: earlier.webCalls.read + now.webCalls.read,
+            extract: earlier.webCalls.extract + now.webCalls.extract,
+            watch: earlier.webCalls.watch + now.webCalls.watch,
           }
-        : (now.exaCalls ?? earlier.exaCalls),
+        : (now.webCalls ?? earlier.webCalls),
     contextTrimmed: earlier.contextTrimmed || now.contextTrimmed || undefined,
   };
 }

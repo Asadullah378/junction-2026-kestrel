@@ -98,8 +98,8 @@ export async function POST(req: Request) {
             seen = true;
           }
         } else output = await running;
-        const { exaCostUsd, workerCostUsd, exaCalls, decisionCostUsd, decisionCalls } = meter.snapshot();
-        say({ type: "result", output, text: await spokenToolResult(name, tool, toolCallId, input, output), spent: { exaCostUsd, workerCostUsd, exaCalls, decisionCostUsd, decisionCalls } });
+        const { webCostUsd, workerCostUsd, webCalls, decisionCostUsd, decisionCalls } = meter.snapshot();
+        say({ type: "result", output, text: await spokenToolResult(name, tool, toolCallId, input, output), spent: { webCostUsd, workerCostUsd, webCalls, decisionCostUsd, decisionCalls } });
       } catch (err) {
         say({ type: "error", error: err instanceof Error && err.name !== "AbortError" ? err.message.slice(0, 300) : "The tool was stopped." });
       } finally {

@@ -117,7 +117,7 @@ export const conversations = pgTable(
  * null), so past spend still adds up after an account is deleted.
  *
  * The cost of a row falls into four kinds: LLMs (`llm_cost_usd` of a typed request, and
- * `worker_cost_usd` of any row), Exa (`exa_cost_usd`), voice (`llm_cost_usd` of a voice row) and
+ * `worker_cost_usd` of any row), Exa (`web_cost_usd`), voice (`llm_cost_usd` of a voice row) and
  * decisions (`decision_cost_usd`). The total is the four columns added up.
  */
 export const usageEvents = pgTable(
@@ -148,14 +148,14 @@ export const usageEvents = pgTable(
     workerOutputTokens: integer("worker_output_tokens").notNull().default(0),
     llmCostUsd: doublePrecision("llm_cost_usd").notNull().default(0),
     workerCostUsd: doublePrecision("worker_cost_usd").notNull().default(0),
-    exaCostUsd: doublePrecision("exa_cost_usd").notNull().default(0),
+    webCostUsd: doublePrecision("web_cost_usd").notNull().default(0),
     /** The decision model behind sift: what it cost and how many requests it took. */
     decisionCostUsd: doublePrecision("decision_cost_usd").notNull().default(0),
     decisionCalls: integer("decision_calls").notNull().default(0),
-    exaSearchCalls: integer("exa_search_calls").notNull().default(0),
-    exaContentsCalls: integer("exa_contents_calls").notNull().default(0),
-    exaAgentCalls: integer("exa_agent_calls").notNull().default(0),
-    exaAnswerCalls: integer("exa_answer_calls").notNull().default(0),
+    webSearchCalls: integer("web_search_calls").notNull().default(0),
+    webReadCalls: integer("web_read_calls").notNull().default(0),
+    webExtractCalls: integer("web_extract_calls").notNull().default(0),
+    webWatchCalls: integer("web_watch_calls").notNull().default(0),
     steps: integer("steps").notNull().default(0),
     durationMs: integer("duration_ms").notNull().default(0),
     createdAt: at("created_at").notNull().defaultNow(),

@@ -1,6 +1,6 @@
 import type { LanguageModelUsage } from "ai";
 import type { DecisionMeter } from "@/lib/decisions/client";
-import type { ExaMeter } from "@/lib/exa/client";
+import type { WebMeter } from "@/lib/exa/client";
 import { costOf } from "./models";
 import { EMPTY_USAGE, type RunStats, type TokenUsage } from "./stats";
 
@@ -31,19 +31,19 @@ export function addUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
  * helper model calls and sub-agents that run inside tools. The main agent's own usage comes from the
  * AI SDK when the stream finishes and is added in the route.
  */
-export class RunMeter implements ExaMeter, DecisionMeter {
+export class RunMeter implements WebMeter, DecisionMeter {
   readonly startedAt = Date.now();
-  exaCostUsd = 0;
-  exaCalls = { search: 0, contents: 0, agent: 0, answer: 0 };
+  webCostUsd = 0;
+  webCalls = { search: 0, read: 0, extract: 0, watch: 0 };
   workerUsage: TokenUsage = { ...EMPTY_USAGE };
   workerCostUsd = 0;
   decisionCostUsd = 0;
   decisionCalls = 0;
   contextTrimmed = false;
 
-  addExa(costUsd: number, kind: "search" | "contents" | "agent" | "answer") {
-    this.exaCostUsd += costUsd;
-    this.exaCalls[kind] += 1;
+  addWeb(costUsd: number, kind: "search" | "read" | "extract" | "watch") {
+    this.webCostUsd += costUsd;
+    this.webCalls[kind] += 1;
   }
 
   /** Record a helper or sub-agent model call. */
@@ -59,10 +59,10 @@ export class RunMeter implements ExaMeter, DecisionMeter {
     this.decisionCalls += 1;
   }
 
-  snapshot(): Pick<RunStats, "exaCostUsd" | "exaCalls" | "workerUsage" | "workerCostUsd" | "decisionCostUsd" | "decisionCalls" | "contextTrimmed"> {
+  snapshot(): Pick<RunStats, "webCostUsd" | "webCalls" | "workerUsage" | "workerCostUsd" | "decisionCostUsd" | "decisionCalls" | "contextTrimmed"> {
     return {
-      exaCostUsd: round(this.exaCostUsd),
-      exaCalls: { ...this.exaCalls },
+      webCostUsd: round(this.webCostUsd),
+      webCalls: { ...this.webCalls },
       workerUsage: { ...this.workerUsage },
       workerCostUsd: round(this.workerCostUsd),
       decisionCostUsd: this.decisionCalls ? round(this.decisionCostUsd) : undefined,

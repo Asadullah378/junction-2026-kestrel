@@ -25,7 +25,7 @@ const NONE: Cap = { capUsd: null, spentUsd: 0, reached: false };
 /** Everything an account has spent, in US dollars. */
 export async function spentBy(userId: string): Promise<number> {
   const rows = await database().execute(sql`
-    select coalesce(sum(e.llm_cost_usd + e.worker_cost_usd + e.exa_cost_usd + e.decision_cost_usd), 0) as spent
+    select coalesce(sum(e.llm_cost_usd + e.worker_cost_usd + e.web_cost_usd + e.decision_cost_usd), 0) as spent
     from usage_events e where e.user_id = ${userId}`);
   return Number(rows[0]?.spent ?? 0) || 0;
 }

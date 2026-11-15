@@ -40,7 +40,7 @@ export const siftFixture: SiftData = {
   judgements: 200,
   judgedMs: 713,
   sources: items,
-  exaCostUsd: 0.037,
+  webCostUsd: 0.037,
 };
 
 export const siftLoadingFixture: SiftData = {

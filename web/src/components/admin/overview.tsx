@@ -10,7 +10,7 @@ import { Empty, PageHeading, Panel } from "./admin-shell";
 import { count, dayLabel, share, usd } from "./format";
 import { Meter, Rows, SPEND_KINDS, SPEND_MEANING, SpendSplit, modeRowsOf, modelRowsOf, totalSpend } from "./usage-parts";
 
-/* What the money went on: LLMs, Exa, voice and decisions, in the order the bars are stacked. */
+/* What the money went on: LLMs, web data, voice and decisions, in the order the bars are stacked. */
 const SPEND = SPEND_KINDS;
 const total = totalSpend;
 
@@ -62,13 +62,13 @@ export function OverviewScreen({ data }: { data: Overview }) {
         <Panel title="Where the money goes" note={`In ${range}.`}>
           {quiet ? (
             <Empty icon={<ChartNoAxesColumn />} title="Nothing spent in this period">
-              The split between LLMs, Exa, voice and decisions appears here as soon as someone asks for something.
+              The split between LLMs, web data, voice and decisions appears here as soon as someone asks for something.
             </Empty>
           ) : (
             <div className="flex flex-col gap-4">
               <SpendSplit spend={data.period} />
               <p className="border-t border-border pt-3 text-[0.78rem] leading-snug text-muted-foreground">
-                {count(data.period.exaCalls)} Exa calls{data.period.decisionCalls > 0 ? `, ${count(data.period.decisionCalls)} requests to the decision model` : ""}.{" "}
+                {count(data.period.webCalls)} web calls{data.period.decisionCalls > 0 ? `, ${count(data.period.decisionCalls)} requests to the decision model` : ""}.{" "}
                 {data.period.activeAccounts === 1 ? "One account" : `${count(data.period.activeAccounts)} accounts`} asked for something.{" "}
                 {data.period.jobRuns > 0 ? `Scheduled jobs ran ${count(data.period.jobRuns)} ${data.period.jobRuns === 1 ? "time" : "times"} and cost ${usd(data.period.jobsUsd)} of this. ` : ""}
                 {SPEND_MEANING}
@@ -170,7 +170,7 @@ function Daily({ data, quiet }: { data: Overview; quiet: boolean }) {
   return (
     <Panel
       title="Day by day"
-      note={measure === "cost" ? "What each day cost, split into LLMs, Exa, voice and decisions." : measure === "requests" ? "Requests to a model each day." : "Tokens in and out each day, sub-agents included."}
+      note={measure === "cost" ? "What each day cost, split into LLMs, web data, voice and decisions." : measure === "requests" ? "Requests to a model each day." : "Tokens in and out each day, sub-agents included."}
       action={
         <div role="group" aria-label="What the chart shows" className="flex items-center gap-1 rounded-full border border-border bg-background p-1 text-[0.78rem]">
           {MEASURES.map((m) => (

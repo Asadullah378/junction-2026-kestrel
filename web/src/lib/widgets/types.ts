@@ -26,7 +26,7 @@ export type WidgetBase = {
   stage?: string;
   sources: Source[];
   /** What this call cost on Exa, in US dollars. */
-  exaCostUsd?: number;
+  webCostUsd?: number;
   /** Set when the tool could not get the data. The widget shows this instead of content. */
   error?: string;
 };

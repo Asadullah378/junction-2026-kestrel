@@ -132,7 +132,7 @@ export function siftTool(ctx: ToolContext) {
         const lists = searches.map((s) => (s.status === "fulfilled" ? s.value.results : []));
         const found: ExaResult[] = [];
         for (let rank = 0; rank < perQuery; rank++) for (const list of lists) if (list[rank]) found.push(list[rank]);
-        const exaCostUsd = Math.round(searches.reduce((sum, s) => sum + (s.status === "fulfilled" ? (s.value.costDollars?.total ?? 0) : 0), 0) * 1e5) / 1e5;
+        const webCostUsd = Math.round(searches.reduce((sum, s) => sum + (s.status === "fulfilled" ? (s.value.costDollars?.total ?? 0) : 0), 0) * 1e5) / 1e5;
         if (found.length === 0) {
           const failed = searches.find((s) => s.status === "rejected");
           yield { ...base, items: [], checked: 0, sources: [], error: failed ? errorMessage((failed as PromiseRejectedResult).reason) : "Nothing was found. Try describing it differently." };
@@ -155,15 +155,15 @@ export function siftTool(ctx: ToolContext) {
         const asItem = (r: ExaResult): SiftItem => ({ ...toSource({ url: r.url, title: r.title, publishedDate: r.publishedDate, snippet: clip(r.highlights?.[0], 240) || undefined }), image: r.image ?? undefined });
         const listed = pages.map(asItem);
         if (pages.length === 0) {
-          yield { ...base, items: [], checked: 0, sources: [], exaCostUsd, error: "The pages that were found had nothing to read. Try describing it differently." };
+          yield { ...base, items: [], checked: 0, sources: [], webCostUsd, error: "The pages that were found had nothing to read. Try describing it differently." };
           return;
         }
 
         const checks = pages.length * wishes.length;
-        yield { ...base, items: listed, checked: pages.length, sources: listed.slice(0, 12), exaCostUsd, stage: `Checking ${pages.length} pages against ${wishes.length === 1 ? "your wish" : `${wishes.length} wishes`}` };
+        yield { ...base, items: listed, checked: pages.length, sources: listed.slice(0, 12), webCostUsd, stage: `Checking ${pages.length} pages against ${wishes.length === 1 ? "your wish" : `${wishes.length} wishes`}` };
 
         if (!decisionsConfigured()) {
-          yield { ...base, items: listed, checked: pages.length, sources: listed, exaCostUsd, unjudged: "These pages were found but could not be checked against your wishes: the decision model is not set up on this server." };
+          yield { ...base, items: listed, checked: pages.length, sources: listed, webCostUsd, unjudged: "These pages were found but could not be checked against your wishes: the decision model is not set up on this server." };
           return;
         }
 
@@ -186,7 +186,7 @@ export function siftTool(ctx: ToolContext) {
           judged = await decide(pages.map((r, i) => pageText(r, i + 1)).join("\n\n"), questions, { meter: ctx.meter, signal: abortSignal });
         } catch (err) {
           if (abortSignal?.aborted) throw err;
-          yield { ...base, items: listed, checked: pages.length, sources: listed, exaCostUsd, unjudged: `These pages were found but could not be checked against your wishes. ${errorMessage(err)}` };
+          yield { ...base, items: listed, checked: pages.length, sources: listed, webCostUsd, unjudged: `These pages were found but could not be checked against your wishes. ${errorMessage(err)}` };
           return;
         }
 
@@ -213,7 +213,7 @@ export function siftTool(ctx: ToolContext) {
           judgements: checks + pages.length,
           judgedMs: judged.ms,
           sources: items,
-          exaCostUsd,
+          webCostUsd,
         };
       } catch (err) {
         yield { ...base, items: [], checked: 0, sources: [], error: errorMessage(err) };

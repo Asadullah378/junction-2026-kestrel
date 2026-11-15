@@ -156,7 +156,7 @@ export const placesFixture: PlacesData = {
     toSource({ url: "https://www.tripadvisor.com/Restaurants-g189934-Helsinki_Uusimaa.html", title: "The best restaurants in Helsinki | Tripadvisor" }),
     toSource({ url: "https://www.google.com/maps/search/restaurants+near+Kamppi+Helsinki", title: "Restaurants near Kamppi | Google Maps" }),
   ],
-  exaCostUsd: 0.012,
+  webCostUsd: 0.012,
 };
 
 export const placesLoadingFixture: PlacesData = {

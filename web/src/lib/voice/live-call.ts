@@ -703,18 +703,18 @@ export class LiveCall {
           this.noteStats(
             (stats) => ({
               ...stats,
-              exaCostUsd: (stats.exaCostUsd ?? 0) + (spent.exaCostUsd ?? 0),
+              webCostUsd: (stats.webCostUsd ?? 0) + (spent.webCostUsd ?? 0),
               workerCostUsd: (stats.workerCostUsd ?? 0) + (spent.workerCostUsd ?? 0),
               decisionCostUsd: spent.decisionCalls ? (stats.decisionCostUsd ?? 0) + (spent.decisionCostUsd ?? 0) : stats.decisionCostUsd,
               decisionCalls: spent.decisionCalls ? (stats.decisionCalls ?? 0) + spent.decisionCalls : stats.decisionCalls,
-              exaCalls: spent.exaCalls
+              webCalls: spent.webCalls
                 ? {
-                    search: (stats.exaCalls?.search ?? 0) + spent.exaCalls.search,
-                    contents: (stats.exaCalls?.contents ?? 0) + spent.exaCalls.contents,
-                    agent: (stats.exaCalls?.agent ?? 0) + spent.exaCalls.agent,
-                    answer: (stats.exaCalls?.answer ?? 0) + spent.exaCalls.answer,
+                    search: (stats.webCalls?.search ?? 0) + spent.webCalls.search,
+                    read: (stats.webCalls?.read ?? 0) + spent.webCalls.read,
+                    extract: (stats.webCalls?.extract ?? 0) + spent.webCalls.extract,
+                    watch: (stats.webCalls?.watch ?? 0) + spent.webCalls.watch,
                   }
-                : stats.exaCalls,
+                : stats.webCalls,
             }),
             messageId,
           );

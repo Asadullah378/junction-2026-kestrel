@@ -16,7 +16,7 @@ export type TokenUsage = {
 
 export const EMPTY_USAGE: TokenUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 };
 
-export type ExaCalls = { search: number; contents: number; agent: number; answer: number };
+export type WebCalls = { search: number; read: number; extract: number; watch: number };
 
 /** Sent as message metadata. An account that may not see usage gets only the mode and the times. */
 export type RunStats = {
@@ -33,8 +33,8 @@ export type RunStats = {
   workerUsage?: TokenUsage;
   workerCostUsd?: number;
   /** Exa spend and call counts. */
-  exaCostUsd?: number;
-  exaCalls?: ExaCalls;
+  webCostUsd?: number;
+  webCalls?: WebCalls;
   /** What checking pages against wishes cost (the decision model behind sift), and how many requests it took. */
   decisionCostUsd?: number;
   decisionCalls?: number;
@@ -57,13 +57,13 @@ export const isVoice = (stats: RunStats | undefined): boolean => stats?.mode ===
 /* ───────────────────────── What it cost, by kind ───────────────────────── */
 
 /** The four things an answer can spend money on. */
-export type Spend = { exa: number; llm: number; voice: number; decisions: number };
+export type Spend = { web: number; llm: number; voice: number; decisions: number };
 
-export const NO_SPEND: Spend = { exa: 0, llm: 0, voice: 0, decisions: 0 };
+export const NO_SPEND: Spend = { web: 0, llm: 0, voice: 0, decisions: 0 };
 
 export const SPEND_LABELS: Array<{ key: keyof Spend; label: string }> = [
   { key: "llm", label: "LLMs" },
-  { key: "exa", label: "Exa" },
+  { key: "web", label: "Web data" },
   { key: "voice", label: "Voice" },
   { key: "decisions", label: "Decisions" },
 ];
@@ -73,17 +73,17 @@ export function spendOf(stats: RunStats | undefined): Spend {
   if (!stats) return { ...NO_SPEND };
   const voice = isVoice(stats);
   return {
-    exa: stats.exaCostUsd ?? 0,
+    web: stats.webCostUsd ?? 0,
     llm: (voice ? 0 : (stats.llmCostUsd ?? 0)) + (stats.workerCostUsd ?? 0),
     voice: voice ? (stats.llmCostUsd ?? 0) : 0,
     decisions: stats.decisionCostUsd ?? 0,
   };
 }
 
-export const totalSpend = (spend: Spend): number => spend.exa + spend.llm + spend.voice + spend.decisions;
+export const totalSpend = (spend: Spend): number => spend.web + spend.llm + spend.voice + spend.decisions;
 
 export function addSpend(a: Spend, b: Spend): Spend {
-  return { exa: a.exa + b.exa, llm: a.llm + b.llm, voice: a.voice + b.voice, decisions: a.decisions + b.decisions };
+  return { web: a.web + b.web, llm: a.llm + b.llm, voice: a.voice + b.voice, decisions: a.decisions + b.decisions };
 }
 
 /* ───────────────────────── One answer, or a whole conversation, summed up ───────────────────────── */
@@ -95,7 +95,7 @@ export type UsageSummary = {
   llmTokens: { in: number; out: number; cached: number };
   /** Tokens heard and spoken in live calls. */
   voiceTokens: { in: number; out: number };
-  exaCalls: ExaCalls;
+  webCalls: WebCalls;
   decisionCalls: number;
   steps: number;
   durationMs: number;
@@ -106,7 +106,7 @@ export const NO_USAGE: UsageSummary = {
   spend: NO_SPEND,
   llmTokens: { in: 0, out: 0, cached: 0 },
   voiceTokens: { in: 0, out: 0 },
-  exaCalls: { search: 0, contents: 0, agent: 0, answer: 0 },
+  webCalls: { search: 0, read: 0, extract: 0, watch: 0 },
   decisionCalls: 0,
   steps: 0,
   durationMs: 0,
@@ -126,7 +126,7 @@ export function summarise(stats: RunStats | undefined): UsageSummary {
       cached: voice ? 0 : main.cacheReadTokens,
     },
     voiceTokens: { in: voice ? main.inputTokens : 0, out: voice ? main.outputTokens : 0 },
-    exaCalls: stats.exaCalls ?? NO_USAGE.exaCalls,
+    webCalls: stats.webCalls ?? NO_USAGE.webCalls,
     decisionCalls: stats.decisionCalls ?? 0,
     steps: stats.steps ?? 0,
     durationMs: stats.durationMs ?? 0,
@@ -139,11 +139,11 @@ export function addSummaries(a: UsageSummary, b: UsageSummary): UsageSummary {
     spend: addSpend(a.spend, b.spend),
     llmTokens: { in: a.llmTokens.in + b.llmTokens.in, out: a.llmTokens.out + b.llmTokens.out, cached: a.llmTokens.cached + b.llmTokens.cached },
     voiceTokens: { in: a.voiceTokens.in + b.voiceTokens.in, out: a.voiceTokens.out + b.voiceTokens.out },
-    exaCalls: {
-      search: a.exaCalls.search + b.exaCalls.search,
-      contents: a.exaCalls.contents + b.exaCalls.contents,
-      agent: a.exaCalls.agent + b.exaCalls.agent,
-      answer: a.exaCalls.answer + b.exaCalls.answer,
+    webCalls: {
+      search: a.webCalls.search + b.webCalls.search,
+      read: a.webCalls.read + b.webCalls.read,
+      extract: a.webCalls.extract + b.webCalls.extract,
+      watch: a.webCalls.watch + b.webCalls.watch,
     },
     decisionCalls: a.decisionCalls + b.decisionCalls,
     steps: a.steps + b.steps,
@@ -152,7 +152,7 @@ export function addSummaries(a: UsageSummary, b: UsageSummary): UsageSummary {
   };
 }
 
-export const exaCallCount = (calls: ExaCalls): number => calls.search + calls.contents + calls.agent + calls.answer;
+export const webCallCount = (calls: WebCalls): number => calls.search + calls.read + calls.extract + calls.watch;
 
 /** True when the figures of an answer were sent at all: an account that may not see usage gets only the mode and the time. */
-export const hasFigures = (stats: RunStats | undefined): boolean => Boolean(stats && (stats.usage || stats.llmCostUsd !== undefined || stats.exaCalls || stats.exaCostUsd !== undefined));
+export const hasFigures = (stats: RunStats | undefined): boolean => Boolean(stats && (stats.usage || stats.llmCostUsd !== undefined || stats.webCalls || stats.webCostUsd !== undefined));
