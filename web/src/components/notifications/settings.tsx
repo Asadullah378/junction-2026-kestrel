@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Switch } from "@/components/ui/switch";
 
 /*
- * Which emails the account gets. Notifications always show in the app; email is for when the
- * user is away. Every switch is saved the moment it is turned.
+ * Which emails the account gets. Notifications always show in the app. A watch's change and a
+ * job's result are emailed either way; a chat's notice only when the user is away. Every switch
+ * is saved the moment it is turned.
  */
 
 type Key = keyof NotifyPrefs;
@@ -59,7 +60,7 @@ export function NotificationSettings({ open, onOpenChange }: { open: boolean; on
         <DialogHeader className="gap-1.5 px-5 pt-5 pb-4 text-left sm:px-6 sm:pt-6">
           <DialogTitle className="text-[1.15rem] leading-tight font-semibold tracking-tight">Notifications</DialogTitle>
           <DialogDescription className="text-[0.86rem] leading-relaxed text-muted-foreground">
-            You always see notifications in {APP_NAME}. Email is for when you&apos;re away.
+            You always see notifications in {APP_NAME}. Watches and jobs email you too. Chats only when you&apos;re away.
           </DialogDescription>
         </DialogHeader>
 
@@ -87,7 +88,7 @@ export function NotificationSettings({ open, onOpenChange }: { open: boolean; on
         <div className={cn("border-t border-border bg-surface/60 px-5 py-1 transition-opacity sm:px-6", off && "opacity-55")}>
           <Row
             label={`Hold emails while I have ${APP_NAME} open`}
-            hint="No email about chats or the browser while you're here. Job results are sent either way."
+            hint="No email about chats while you're here. Watches and jobs are sent either way."
             checked={Boolean(prefs?.quietWhenHere)}
             disabled={!prefs || off}
             onChange={(value) => change("quietWhenHere", value)}

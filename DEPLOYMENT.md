@@ -61,7 +61,7 @@ There is no deploy workflow on GitHub. `.github/workflows/ci.yml` runs the type 
 
 - The clock that starts watches is inside the server, so they run only while the one instance is up.
 - A watch with pinned pages or searches registers Context.dev monitors that call `https://kestrel.zeroanomaly.tech/api/hooks/context`. That address comes from `KESTREL_SITE_URL`; monitors are not registered when it is empty or points at localhost. The call is signed; the route verifies the signature before doing anything.
-- Emails (notices, what a watch found) go out through Resend. The sender is on `beryl.zeroanomaly.tech`, the domain the team already verified there for its first project, under the name Kestrel. To send from Kestrel's own domain, verify `kestrel.zeroanomaly.tech` at Resend (three DNS records) and set `KESTREL_EMAIL_FROM`.
+- Emails (notices, what a watch found) go out through Resend, from `Kestrel <notifications@kestrel.zeroanomaly.tech>`. The domain `kestrel.zeroanomaly.tech` was verified at Resend on 15 Nov; that address is the default in the code (`web/src/lib/email/resend.ts`), and `KESTREL_EMAIL_FROM` overrides it. An account whose address cannot receive mail, such as the admin's `admin@kestrel.local`, is not emailed: it sees its notices in the app only.
 
 ## Changing a setting
 

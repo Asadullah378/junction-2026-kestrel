@@ -3,11 +3,11 @@ import "server-only";
 /*
  * Sending email, through Resend (https://resend.com/docs/api-reference/emails/send-email).
  * One plain HTTP call, so the request is explicit and nothing else is pulled in. The sender has
- * to be an address on a domain verified at Resend; ours is beryl.zeroanomaly.tech, the team's first project, until one for Kestrel is verified.
+ * to be an address on a domain verified at Resend: ours is kestrel.zeroanomaly.tech (verified on 15 Nov 2026).
  */
 
 const ENDPOINT = "https://api.resend.com/emails";
-const DEFAULT_FROM = "Kestrel <notifications@beryl.zeroanomaly.tech>";
+const DEFAULT_FROM = "Kestrel <notifications@kestrel.zeroanomaly.tech>";
 
 export type EmailResult = { ok: true; id: string } | { ok: false; reason: string };
 

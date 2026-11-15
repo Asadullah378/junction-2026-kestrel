@@ -153,7 +153,7 @@ export function NotificationBell({ onOpenChat, className }: { onOpenChat?: (conv
 
           {items.length > 0 ? (
             <div className="flex items-center justify-between border-t border-border px-4 py-2">
-              <span className="text-[0.72rem] text-subtle">Emails only go out when you&apos;re away.</span>
+              <span className="text-[0.72rem] text-subtle">Watches and jobs always email you.</span>
               <button type="button" onClick={() => void clearNotifications()} className="rounded-full px-2 py-1 text-[0.75rem] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
                 Clear all
               </button>
